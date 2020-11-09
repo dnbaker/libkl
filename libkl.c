@@ -3,7 +3,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <assert.h>
-#include "kl_kernels.h"
+#include "libkl.h"
 
 
 
