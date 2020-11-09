@@ -127,7 +127,7 @@ double __kl_reduce_aligned_d(const double *const __restrict__ lhs, const double 
         float lhv = lhs[i] + lhi, rhv = rhs[i] + rhi;
         oret += lhv * logf(lhv / rhv);
     }
-    assert(abs(oret - ret) < 1e-5);
+    assert(fabs(oret - ret) < 1e-5);
 #endif
     return ret;
 }
@@ -155,7 +155,6 @@ double __kl_reduce_aligned_f(const float *const __restrict__ lhs, const float *c
     assert(((uint64_t)lhs) % 32 == 0);
     const size_t nper = sizeof(__m256) / sizeof(float);
     const size_t nsimd = n / nper;
-    const size_t nsimd4 = (nsimd / 4) * 4;
 
     __m256 sum = _mm256_setzero_ps();
     #pragma GCC unroll 4
@@ -163,8 +162,9 @@ double __kl_reduce_aligned_f(const float *const __restrict__ lhs, const float *c
         __m256 lh = _mm256_add_ps(_mm256_load_ps(lhs + (i * nper)), _mm256_set1_ps(lhi));
         __m256 rh = _mm256_add_ps(_mm256_load_ps(rhs + (i * nper)), _mm256_set1_ps(rhi));
         __m256 res = _mm256_mul_ps(lh, Sleef_logf8_u35(_mm256_div_ps(lh, rh)));
-        ret += broadcast_reduce_add_si256_ps(res)[0];
+        sum = _mm256_add_ps(sum, res);
     }
+    ret += broadcast_reduce_add_si256_ps(sum)[0];
     i *= nper;
 #elif __SSE2__
     assert(reinterpret_cast<uint64_t>(lhs) % 16 == 0);
@@ -196,7 +196,7 @@ double __kl_reduce_aligned_f(const float *const __restrict__ lhs, const float *c
         float rhv = rhs[i] + rhi;
         oret += lhv * logf(lhv / rhv);
     }
-    assert(abs(oret - ret) < 1e-5);
+    assert(fabs(oret - ret) < 1e-5);
 #endif
     return ret;
 }
@@ -315,6 +315,7 @@ double __llr_reduce_aligned_f(const float *const __restrict__ lhs, const float *
     }
     ret = lambda * lhsum + m1l * rhsum;
 #endif
+    return ret;
 }
 
 double __llr_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lambda, double lhinc, double rhinc)
@@ -431,6 +432,7 @@ double __llr_reduce_aligned_d(const double *const __restrict__ lhs, const double
     }
     ret = lambda * lhsum + m1l * rhsum;
 #endif
+    return ret;
 }
 
 double __kl_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
@@ -523,7 +525,7 @@ double __kl_reduce_unaligned_d(const double *const __restrict__ lhs, const doubl
         float lhv = lhs[i] + lhi, rhv = rhs[i] + rhi;
         oret += lhv * logf(lhv / rhv);
     }
-    assert(abs(oret - ret) < 1e-5);
+    assert(fabs(oret - ret) < 1e-5);
 #endif
     return ret;
 }
@@ -551,7 +553,6 @@ double __kl_reduce_unaligned_f(const float *const __restrict__ lhs, const float 
     assert(((uint64_t)lhs) % 32 == 0);
     const size_t nper = sizeof(__m256) / sizeof(float);
     const size_t nsimd = n / nper;
-    const size_t nsimd4 = (nsimd / 4) * 4;
 
     __m256 sum = _mm256_setzero_ps();
     #pragma GCC unroll 4
@@ -559,8 +560,9 @@ double __kl_reduce_unaligned_f(const float *const __restrict__ lhs, const float 
         __m256 lh = _mm256_add_ps(_mm256_loadu_ps(lhs + (i * nper)), _mm256_set1_ps(lhi));
         __m256 rh = _mm256_add_ps(_mm256_loadu_ps(rhs + (i * nper)), _mm256_set1_ps(rhi));
         __m256 res = _mm256_mul_ps(lh, Sleef_logf8_u35(_mm256_div_ps(lh, rh)));
-        ret += broadcast_reduce_add_si256_ps(res)[0];
+        sum = _mm256_add_ps(sum, res);
     }
+    ret += broadcast_reduce_add_si256_ps(sum)[0];
     i *= nper;
 #elif __SSE2__
     assert(reinterpret_cast<uint64_t>(lhs) % 16 == 0);
@@ -592,7 +594,7 @@ double __kl_reduce_unaligned_f(const float *const __restrict__ lhs, const float 
         float rhv = rhs[i] + rhi;
         oret += lhv * logf(lhv / rhv);
     }
-    assert(abs(oret - ret) < 1e-5);
+    assert(fabs(oret - ret) < 1e-5);
 #endif
     return ret;
 }
@@ -711,6 +713,7 @@ double __llr_reduce_unaligned_f(const float *const __restrict__ lhs, const float
     }
     ret = lambda * lhsum + m1l * rhsum;
 #endif
+    return ret;
 }
 
 double __llr_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lambda, double lhinc, double rhinc)
@@ -827,4 +830,5 @@ double __llr_reduce_unaligned_d(const double *const __restrict__ lhs, const doub
     }
     ret = lambda * lhsum + m1l * rhsum;
 #endif
+    return ret;
 }
