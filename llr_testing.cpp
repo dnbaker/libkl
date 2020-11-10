@@ -4,6 +4,7 @@
 #include <cstdlib>
 using std::size_t;
 
+using namespace libkl;
 int main() {
     float *v1 = 0, *v2 = 0, *v3 = 0, *v4 = 0;
     size_t nelem = 100000;
@@ -35,7 +36,7 @@ int main() {
     auto start = std::chrono::high_resolution_clock::now();
     double s = 0.;
     for(size_t k = 0; k < 10; ++k) {
-        s += __llr_reduce_aligned(v1, v2, nelem, lambda, lhi, rhi);
+        s += llr_reduce_aligned(v1, v2, nelem, lambda, lhi, rhi);
     }
     auto stop = std::chrono::high_resolution_clock::now();
     std::fprintf(stderr, "Strategy took %gms for 10 trials\n", std::chrono::duration<double, std::nano>(stop - start).count());

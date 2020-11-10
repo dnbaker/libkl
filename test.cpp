@@ -7,6 +7,8 @@
 #include <iterator>
 using std::size_t;
 
+using namespace libkl;
+
 //#define T T
 template<typename T>
 int main_fn() {

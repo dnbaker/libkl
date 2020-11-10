@@ -19,6 +19,9 @@ double llr_reduce_unaligned_f(const float *const __restrict__ lhs, const float *
 
 #ifdef __cplusplus
 } // extern "C" 
+
+namespace libkl {
+
 double kl_reduce_aligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
     return kl_reduce_aligned_d(lhs, rhs, n, lhi, rhi);
 }
@@ -100,4 +103,6 @@ double kl_reduce(const double *const __restrict__ lhs, const double *const __res
         return kl_reduce_unaligned_d(lhs, rhs, n, lhinc, rhinc);
 }
 
-#endif
+} // namespace libkl
+
+#endif // #ifdef __cplusplus
