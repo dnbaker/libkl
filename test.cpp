@@ -51,17 +51,17 @@ int main_fn() {
         //std::fprintf(stderr, "%g %g -> %g inc, csum %g\n", v1[i], v2[i], c, v11_man);
     }
     //std::fprintf(stderr, "manual: %g\n", v11_man);
-    T v11 = __llr_reduce_aligned(v1, v1, nelem, lambda, lhi, rhi);
-    T v22 = __llr_reduce_aligned(v2, v2, nelem, lambda, lhi, rhi);
-    T v12 = __llr_reduce_aligned(v1, v2, nelem, lambda, lhi, rhi);
+    T v11 = llr_reduce_aligned(v1, v1, nelem, lambda, lhi, rhi);
+    T v22 = llr_reduce_aligned(v2, v2, nelem, lambda, lhi, rhi);
+    T v12 = llr_reduce_aligned(v1, v2, nelem, lambda, lhi, rhi);
     assert(v11 == 0.);
     assert(v22 == 0.);
     assert(std::abs(v12 - 0.) < 1e-10);
     assert(std::equal(v1, v1 + nelem, v2));
     assert(lhi == rhi);
-    v11 = __kl_reduce_aligned(v1, v1, nelem, lhi, rhi);
-    v22 = __kl_reduce_aligned(v2, v2, nelem, lhi, rhi);
-    v12 = __kl_reduce_aligned(v1, v2, nelem, lhi, rhi);
+    v11 = kl_reduce_aligned(v1, v1, nelem, lhi, rhi);
+    v22 = kl_reduce_aligned(v2, v2, nelem, lhi, rhi);
+    v12 = kl_reduce_aligned(v1, v2, nelem, lhi, rhi);
     assert(v11 == 0. || !std::fprintf(stderr, "v1 and v1 -> %g\n", v11));
     assert(v22 == 0. || !std::fprintf(stderr, "v2 and v2 -> %g\n", v22));
     assert(v12 == 0.);
@@ -80,7 +80,7 @@ int main_fn() {
     std::transform(v1, v1 + nelem, v1, [v1s](auto x) {return x / v1s;});
     std::transform(v2, v2 + nelem, v2, [v2s](auto x) {return x / v2s;});
     lambda = (std::accumulate(v1, v1 + nelem, 0.) / (std::accumulate(v1, v1 + nelem, 0.) + std::accumulate(v2, v2 + nelem, 0.)));
-    assert(__llr_reduce_aligned(v1, v2, nelem, lambda, 0., 0.) == 0.);
+    assert(llr_reduce_aligned(v1, v2, nelem, lambda, 0., 0.) == 0.);
 
     fprintf(stderr, "Testing scaling\n");
     for(size_t i = 0; i < nelem; ++i) {
@@ -96,15 +96,15 @@ int main_fn() {
     v2s = std::accumulate(v2, v2 + nelem, 0.);
     fprintf(stderr, "Testing aligned kl reduction. sum lhs: %g. sum rhs: %g. (%g/%g)\n", v1s, v2s, v1s + lhi * nelem, v2s + rhi * nelem);
     lambda = (v2s + nelem) / (v2s + v1s + nelem * 2);
-    v12 = __llr_reduce_aligned(v1, v2, nelem, lambda, lhi, rhi);
+    v12 = llr_reduce_aligned(v1, v2, nelem, lambda, lhi, rhi);
     fprintf(stderr, "manual via simd: %g. via numpy: %g\n", v12, 0.1705398845054989);
     assert(std::abs(v12) - 0.3410797690109978 < 1e-6);
-    v12 = __kl_reduce_aligned(v1, v2, nelem, lhi, rhi);
+    v12 = kl_reduce_aligned(v1, v2, nelem, lhi, rhi);
     fprintf(stderr, "manual via simd: %g. via numpy: %g\n", v12, 0.8102686372626047);
     assert(std::abs(v12) - 0.8102686372626047 < 1e-6);
 
 
-    //std::fprintf(stderr, "Manual value: %g. Value via __llr_reduce_aligned: %g\n", s, v12);
+    //std::fprintf(stderr, "Manual value: %g. Value via llr_reduce_aligned: %g\n", s, v12);
     auto stop = std::chrono::high_resolution_clock::now();
     fprintf(stderr, "[%s] Finished \n", __PRETTY_FUNCTION__);
     return 0;
