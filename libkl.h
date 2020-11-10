@@ -26,43 +26,43 @@ double llr_reduce_unaligned_f(const float *const __restrict__ lhs, const float *
 
 namespace libkl {
 
-double jsd_reduce_unaligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
+static inline double jsd_reduce_unaligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
     return jsd_reduce_unaligned_d(lhs, rhs, n, lhi, rhi);
 }
-double jsd_reduce_unaligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
+static inline double jsd_reduce_unaligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
     return jsd_reduce_unaligned_f(lhs, rhs, n, lhi, rhi);
 }
-double jsd_reduce_aligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
+static inline double jsd_reduce_aligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
     return jsd_reduce_aligned_d(lhs, rhs, n, lhi, rhi);
 }
-double jsd_reduce_aligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
+static inline double jsd_reduce_aligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
     return jsd_reduce_aligned_f(lhs, rhs, n, lhi, rhi);
 }
-double kl_reduce_unaligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
+static inline double kl_reduce_unaligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
     return kl_reduce_unaligned_d(lhs, rhs, n, lhi, rhi);
 }
-double kl_reduce_unaligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
+static inline double kl_reduce_unaligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
     return kl_reduce_unaligned_f(lhs, rhs, n, lhi, rhi);
 }
-double kl_reduce_aligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
+static inline double kl_reduce_aligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
     return kl_reduce_aligned_d(lhs, rhs, n, lhi, rhi);
 }
-double kl_reduce_aligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
+static inline double kl_reduce_aligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
     return kl_reduce_aligned_f(lhs, rhs, n, lhi, rhi);
 }
-double llr_reduce_aligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lambda, double lhinc, double rhinc) {
+static inline double llr_reduce_aligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lambda, double lhinc, double rhinc) {
     return llr_reduce_aligned_d(lhs, rhs, n, lambda, lhinc, rhinc);
 }
-double llr_reduce_aligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lambda, float lhinc, float rhinc) {
+static inline double llr_reduce_aligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lambda, float lhinc, float rhinc) {
     return llr_reduce_aligned_f(lhs, rhs, n, lambda, lhinc, rhinc);
 }
-double llr_reduce_unaligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lambda, double lhinc, double rhinc) {
+static inline double llr_reduce_unaligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lambda, double lhinc, double rhinc) {
     return llr_reduce_unaligned_d(lhs, rhs, n, lambda, lhinc, rhinc);
 }
-double llr_reduce_unaligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lambda, float lhinc, float rhinc) {
+static inline double llr_reduce_unaligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lambda, float lhinc, float rhinc) {
     return llr_reduce_unaligned_f(lhs, rhs, n, lambda, lhinc, rhinc);
 }
-double llr_reduce(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lambda, float lhinc, float rhinc) {
+static inline double llr_reduce(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lambda, float lhinc, float rhinc) {
 #if __AVX512F__
     if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
 #elif __AVX2__
@@ -76,7 +76,7 @@ double llr_reduce(const float *const __restrict__ lhs, const float *const __rest
     else
         return llr_reduce_unaligned_f(lhs, rhs, n, lambda, lhinc, rhinc);
 }
-double llr_reduce(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lambda, double lhinc, double rhinc) {
+static inline double llr_reduce(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lambda, double lhinc, double rhinc) {
 #if __AVX512F__
     if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
 #elif __AVX2__
@@ -90,7 +90,7 @@ double llr_reduce(const double *const __restrict__ lhs, const double *const __re
     else
         return llr_reduce_unaligned_d(lhs, rhs, n, lambda, lhinc, rhinc);
 }
-double kl_reduce(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhinc, float rhinc) {
+static inline double kl_reduce(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhinc, float rhinc) {
 #if __AVX512F__
     if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
 #elif __AVX2__
@@ -104,7 +104,7 @@ double kl_reduce(const float *const __restrict__ lhs, const float *const __restr
     else
         return kl_reduce_unaligned_f(lhs, rhs, n, lhinc, rhinc);
 }
-double kl_reduce(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lhinc, double rhinc) {
+static inline double kl_reduce(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lhinc, double rhinc) {
 #if __AVX512F__
     if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
 #elif __AVX2__
@@ -118,7 +118,7 @@ double kl_reduce(const double *const __restrict__ lhs, const double *const __res
     else
         return kl_reduce_unaligned_d(lhs, rhs, n, lhinc, rhinc);
 }
-double jsd_reduce(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhinc, float rhinc) {
+static inline double jsd_reduce(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhinc, float rhinc) {
 #if __AVX512F__
     if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
 #elif __AVX2__
@@ -132,7 +132,7 @@ double jsd_reduce(const float *const __restrict__ lhs, const float *const __rest
     else
         return jsd_reduce_unaligned_f(lhs, rhs, n, lhinc, rhinc);
 }
-double jsd_reduce(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lhinc, double rhinc) {
+static inline double jsd_reduce(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lhinc, double rhinc) {
 #if __AVX512F__
     if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
 #elif __AVX2__

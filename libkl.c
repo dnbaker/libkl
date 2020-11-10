@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include "libkl.h"
+#include <stdio.h>
 
 
 
@@ -82,12 +83,7 @@ double kl_reduce_aligned_d(const double *const __restrict__ lhs, const double *c
         __m256d res = _mm256_mul_pd(lh, Sleef_logd4_u35(_mm256_div_pd(lh, rh)));
         sum = _mm256_add_pd(sum, res);
     }
-#ifndef NDEBUG
-    double mansum = 0.;
-    for(size_t i = 0; i < sizeof(__m256d) / sizeof(double); ++i) mansum += sum[i];
-#endif
     ret = hsum_double_avx(sum);
-    assert(mansum == ret);
     i *= nper;
 
 

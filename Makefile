@@ -12,6 +12,8 @@ WARNINGS+=-Wall -Wextra -Wpointer-arith -Wformat -Wunused-variable -Wno-attribut
 
 EXTRA?=
 
+EXTRA+=-DNDEBUG
+
 all: libkl.so llr_testing libkl.a
 
 libkl.o: libkl.c libkl.h
