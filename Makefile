@@ -12,12 +12,12 @@ WARNINGS+=-Wall -Wextra -Wpointer-arith -Wformat -Wunused-variable -Wno-attribut
 
 EXTRA?=
 
-EXTRA+=-DNDEBUG
+EXTRA+=-DNDEBUG -fPIC -O3
 
 all: libkl.so llr_testing libkl.a
 
 libkl.o: libkl.c libkl.h
-	$(CC) -fPIC -O3 -march=native $< -o $@ -c $(INCLUDE) $(LIB) $(WARNINGS) $(EXTRA)
+	$(CC) -march=native $< -o $@ -c $(INCLUDE) $(LIB) $(WARNINGS) $(EXTRA)
 
 libkl.so: libkl.o
 	$(CC) -shared $<  -o $@ $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA)
@@ -26,7 +26,7 @@ libkl.a: libkl.o
 	$(AR) rcs $@ $<
 
 %: %.cpp libkl.so
-	$(CXX) -L. -lkl $< -o $@ -O3 -Wall -Wextra $(WARNINGS) $(EXTRA)
+	$(CXX) -L. -lkl $< -o $@ -Wall -Wextra $(WARNINGS) $(EXTRA)
 
 clean:
 	rm -f libkl.so llr_testing libkl.a libkl.o test llr_testing
