@@ -1,3 +1,5 @@
+.PHONY=all clean
+
 CC?=gcc
 CXX?=g++
 
@@ -25,4 +27,4 @@ libkl.a: libkl.o
 	$(CXX) -L. -lkl $< -o $@ -O3 -Wall -Wextra $(WARNINGS) $(EXTRA)
 
 clean:
-	rm -f libkl.so llr_testing libkl.a libkl.o
+	rm -f libkl.so llr_testing libkl.a libkl.o test llr_testing

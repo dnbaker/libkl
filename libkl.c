@@ -73,29 +73,24 @@ double __kl_reduce_aligned_d(const double *const __restrict__ lhs, const double 
     assert(((uint64_t)lhs) % 32 == 0);
     const size_t nper = sizeof(__m256) / sizeof(double);
     const size_t nsimd = n / nper;
-    const size_t nsimd4 = (nsimd / 4) * 4;
-#define lhload(i) _mm256_add_pd(_mm256_load_pd(lhs + ((i) * nper)), lhv)
-#define rhload(i) _mm256_add_pd(_mm256_load_pd(rhs + ((i) * nper)), rhv)
     __m256d lhv = _mm256_set1_pd(lhi), rhv = _mm256_set1_pd(rhi);
     __m256d sum = _mm256_setzero_pd();
-    for(; i < nsimd4; i += 4) {
-        __m256d lh0 = lhload(i), lh1 = lhload(i + 1), lh2 = lhload(i + 2), lh3 = lhload(i + 3);
-        __m256d rh0 = rhload(i), rh1 = rhload(i + 1), rh2 = rhload(i + 2), rh3 = rhload(i + 3);
-        __m256d v0 = _mm256_mul_pd(lh0, Sleef_logd4_u35(_mm256_div_pd(lh0, rh0)));
-        __m256d v1 = _mm256_mul_pd(lh1, Sleef_logd4_u35(_mm256_div_pd(lh1, rh1)));
-        __m256d v2 = _mm256_mul_pd(lh2, Sleef_logd4_u35(_mm256_div_pd(lh2, rh2)));
-        __m256d v3 = _mm256_mul_pd(lh3, Sleef_logd4_u35(_mm256_div_pd(lh3, rh3)));
-        sum = _mm256_add_pd(sum,  _mm256_add_pd(_mm256_add_pd(v0, v1), _mm256_add_pd(v2, v3)));
-    }
+    #pragma GCC unroll 4
     for(; i < nsimd; ++i) {
-        __m256d lh = lhload(i), rh = rhload(i);
-#undef rhload
-#undef lhload
+        __m256d lh = _mm256_add_pd(_mm256_load_pd(lhs + ((i) * nper)), lhv),
+                rh = _mm256_add_pd(_mm256_load_pd(rhs + ((i) * nper)), rhv);
         __m256d res = _mm256_mul_pd(lh, Sleef_logd4_u35(_mm256_div_pd(lh, rh)));
         sum = _mm256_add_pd(sum, res);
     }
+#ifndef NDEBUG
+    double mansum = 0.;
+    for(size_t i = 0; i < sizeof(__m256d) / sizeof(double); ++i) mansum += sum[i];
+#endif
     ret = hsum_double_avx(sum);
+    assert(mansum == ret);
     i *= nper;
+
+
 #elif __SSE2__
     assert(((uint64_t)lhs) % 16 == 0);
     const size_t nper = sizeof(__m128) / sizeof(double);
@@ -116,19 +111,13 @@ double __kl_reduce_aligned_d(const double *const __restrict__ lhs, const double 
         ret = v[0] + v[1];
     }
 #endif
+
+
     #pragma GCC unroll 8
     for(; i < n; ++i) {
-        float lhv = lhs[i] + lhi, rhv = rhs[i] + rhi;
+        double lhv = lhs[i] + lhi, rhv = rhs[i] + rhi;
         ret += lhv * logf(lhv / rhv);
     }
-#ifndef NDEBUG
-    double oret = 0.;
-    for(size_t j = 0; j < n; ++j) {
-        float lhv = lhs[i] + lhi, rhv = rhs[i] + rhi;
-        oret += lhv * logf(lhv / rhv);
-    }
-    assert(fabs(oret - ret) < 1e-5);
-#endif
     return ret;
 }
 
@@ -189,15 +178,6 @@ double __kl_reduce_aligned_f(const float *const __restrict__ lhs, const float *c
         float rhv = rhs[i] + rhi;
         ret += lhv * logf(lhv / rhv);
     }
-#ifndef NDEBUG
-    double oret = 0.;
-    for(size_t j = 0; j < n; ++j) {
-        float lhv = lhs[i] + lhi;
-        float rhv = rhs[i] + rhi;
-        oret += lhv * logf(lhv / rhv);
-    }
-    assert(fabs(oret - ret) < 1e-5);
-#endif
     return ret;
 }
 
@@ -261,7 +241,7 @@ double __llr_reduce_aligned_f(const float *const __restrict__ lhs, const float *
 #else
         __m256 mv = _mm256_add_ps(_mm256_mul_ps(vlambda, lhsa), _mm256_mul_ps(vm1l, rhsa));
         lhsum = _mm256_add_ps(lhsum, _mm256_mul_ps(lhsa, Sleef_logf8_u35(_mm256_div_ps(lhsa, mv))));
-        rhsum = _mm256_add_ps(rhsum, _mm256_mul_ps(rhsa, Sleef_logf8_u35(_mm256_mul_ps(rhsa, mv))));
+        rhsum = _mm256_add_ps(rhsum, _mm256_mul_ps(rhsa, Sleef_logf8_u35(_mm256_div_ps(rhsa, mv))));
 #endif
     }
     ret += lambda * broadcast_reduce_add_si256_ps(lhsum)[0] + m1l * broadcast_reduce_add_si256_ps(rhsum)[0];
@@ -276,9 +256,9 @@ double __llr_reduce_aligned_f(const float *const __restrict__ lhs, const float *
     const size_t nperel = sizeof(__m128) / sizeof(float);
     __m128 lhsum = _mm_setzero_ps(), rhsum = _mm_setzero_ps();
     size_t nsimd = n / nperel;
-    size_t nsimd4 = nsimd / 4;
     //
     __m128 vlambda = _mm_set1_ps(lambda), vm1l = _mm_set1_ps(m1l);
+    #pragma GCC unroll 4
     for(; i < nsimd; ++i) {
         __m128 lhsa = _mm_add_ps(_mm_load_ps(&lhs[i * nperel]), _mm_set1_ps(lhinc));
         __m128 rhsa = _mm_add_ps(_mm_load_ps(&rhs[i * nperel]), _mm_set1_ps(rhinc));
@@ -356,7 +336,7 @@ double __llr_reduce_aligned_d(const double *const __restrict__ lhs, const double
         double xv = lhs[i] + lhinc;
         double yv = rhs[i] + rhinc;
         double mnv = (xv + yv) * .5;
-        ret += lambda * xv * log(xv / mnv) + m1l * rhs[i] * log(yv / mnv);
+        ret += lambda * xv * log(xv / mnv) + m1l * yv * log(yv / mnv);
     }
 #elif __AVX2__
     const size_t nperel = sizeof(__m256d) / sizeof(double);
@@ -378,8 +358,10 @@ double __llr_reduce_aligned_d(const double *const __restrict__ lhs, const double
         rhsum = _mm256_add_pd(rhsum, _mm256_mul_pd(rhsa, _mm256_sub_pd(Sleef_logd4_u35(rhsa), lmv)));
 #else
         __m256d mv = _mm256_add_pd(_mm256_mul_pd(vlambda, lhsa), _mm256_mul_pd(vm1l, rhsa));
+        for(size_t i = 0; i < nperel; ++i) {
+        }
         lhsum = _mm256_add_pd(lhsum, _mm256_mul_pd(lhsa, Sleef_logd4_u35(_mm256_div_pd(lhsa, mv))));
-        rhsum = _mm256_add_pd(rhsum, _mm256_mul_pd(rhsa, Sleef_logd4_u35(_mm256_mul_pd(rhsa, mv))));
+        rhsum = _mm256_add_pd(rhsum, _mm256_mul_pd(rhsa, Sleef_logd4_u35(_mm256_div_pd(rhsa, mv))));
 #endif
     }
     ret += lambda * hsum_double_avx(lhsum) + m1l * hsum_double_avx(rhsum);
@@ -659,7 +641,7 @@ double __llr_reduce_unaligned_f(const float *const __restrict__ lhs, const float
 #else
         __m256 mv = _mm256_add_ps(_mm256_mul_ps(vlambda, lhsa), _mm256_mul_ps(vm1l, rhsa));
         lhsum = _mm256_add_ps(lhsum, _mm256_mul_ps(lhsa, Sleef_logf8_u35(_mm256_div_ps(lhsa, mv))));
-        rhsum = _mm256_add_ps(rhsum, _mm256_mul_ps(rhsa, Sleef_logf8_u35(_mm256_mul_ps(rhsa, mv))));
+        rhsum = _mm256_add_ps(rhsum, _mm256_mul_ps(rhsa, Sleef_logf8_u35(_mm256_div_ps(rhsa, mv))));
 #endif
     }
     ret += lambda * broadcast_reduce_add_si256_ps(lhsum)[0] + m1l * broadcast_reduce_add_si256_ps(rhsum)[0];
@@ -776,7 +758,7 @@ double __llr_reduce_unaligned_d(const double *const __restrict__ lhs, const doub
 #else
         __m256d mv = _mm256_add_pd(_mm256_mul_pd(vlambda, lhsa), _mm256_mul_pd(vm1l, rhsa));
         lhsum = _mm256_add_pd(lhsum, _mm256_mul_pd(lhsa, Sleef_logd4_u35(_mm256_div_pd(lhsa, mv))));
-        rhsum = _mm256_add_pd(rhsum, _mm256_mul_pd(rhsa, Sleef_logd4_u35(_mm256_mul_pd(rhsa, mv))));
+        rhsum = _mm256_add_pd(rhsum, _mm256_mul_pd(rhsa, Sleef_logd4_u35(_mm256_div_pd(rhsa, mv))));
 #endif
     }
     ret += lambda * hsum_double_avx(lhsum) + m1l * hsum_double_avx(rhsum);
