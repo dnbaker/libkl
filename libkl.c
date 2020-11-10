@@ -63,7 +63,7 @@ double kl_reduce_aligned_d(const double *const __restrict__ lhs, const double *c
         ret += _mm512_reduce_add_pd(sum);
     }
     for(; i < nsimd; ++i) {
-        __m512d lh = lhload(i), rh = rhload(i);
+        __m512d lh = lhload(i);
         __m512d logv = Sleef_logd8_u35(_mm512_div_pd(lh, rhload(i)));
         ret += _mm512_reduce_add_pd(_mm512_mul_pd(lh, logv));
     }
@@ -124,7 +124,6 @@ double kl_reduce_aligned_f(const float *const __restrict__ lhs, const float *con
     assert(((uint64_t)lhs) % 64 == 0);
     const size_t nper = sizeof(__m512) / sizeof(float);
     const size_t nsimd = n / nper;
-    const size_t nsimd4 = (nsimd / 4) * 4;
     __m512 sum = _mm512_setzero_ps();
     #pragma GCC unroll 4
     for(; i < nsimd; ++i) {
@@ -310,8 +309,8 @@ double jsd_reduce_aligned_f(const float *const __restrict__ lhs, const float *co
         __m512 lhl = _mm512_add_ps(_mm512_load_ps(&lhs[i * nperel]), lhv);
         __m512 rhl = _mm512_add_ps(_mm512_load_ps(&rhs[i * nperel]), rhv);
         __m512 mv = _mm512_mul_ps(_mm512_set1_ps(.5), _mm512_add_ps(lhl, rhl));
-        __m512 lv0 = _mm512_mul_ps(lhl, Sleef_logd8_u35(_mm512_div_ps(lhl, mv)));
-        __m512 rv0 = _mm512_mul_ps(rhl, Sleef_logd8_u35(_mm512_div_ps(rhl, mv)));
+        __m512 lv0 = _mm512_mul_ps(lhl, Sleef_logf16_u35(_mm512_div_ps(lhl, mv)));
+        __m512 rv0 = _mm512_mul_ps(rhl, Sleef_logf16_u35(_mm512_div_ps(rhl, mv)));
         sum= _mm512_add_ps(sum, _mm512_add_ps(lv0, rv0));
     }
     ret += .5f * (_mm512_reduce_add_ps(sum));
@@ -502,7 +501,7 @@ double llr_reduce_aligned_d(const double *const __restrict__ lhs, const double *
     for(i *= nperel;i < n; ++i) {
         double xv = lhs[i] + lhinc;
         double yv = rhs[i] + rhinc;
-        double mnv = (xv * lambda + yv * m1v);
+        double mnv = (xv * lambda + yv * m1l);
         ret += lambda * xv * log(xv / mnv) + m1l * yv * log(yv / mnv);
     }
 #elif __AVX2__
@@ -609,7 +608,7 @@ double kl_reduce_unaligned_d(const double *const __restrict__ lhs, const double 
         ret += _mm512_reduce_add_pd(sum);
     }
     for(; i < nsimd; ++i) {
-        __m512d lh = lhload(i), rh = rhload(i);
+        __m512d lh = lhload(i);
         __m512d logv = Sleef_logd8_u35(_mm512_div_pd(lh, rhload(i)));
 #undef lhload
 #undef rhload
@@ -686,7 +685,6 @@ double kl_reduce_unaligned_f(const float *const __restrict__ lhs, const float *c
     assert(((uint64_t)lhs) % 64 == 0);
     const size_t nper = sizeof(__m512) / sizeof(float);
     const size_t nsimd = n / nper;
-    const size_t nsimd4 = (nsimd / 4) * 4;
     __m512 sum = _mm512_setzero_ps();
     #pragma GCC unroll 4
     for(; i < nsimd; ++i) {
@@ -997,8 +995,8 @@ double jsd_reduce_unaligned_f(const float *const __restrict__ lhs, const float *
         __m512 lhl = _mm512_add_ps(_mm512_loadu_ps(&lhs[i * nperel]), lhv);
         __m512 rhl = _mm512_add_ps(_mm512_loadu_ps(&rhs[i * nperel]), rhv);
         __m512 mv = _mm512_mul_ps(_mm512_set1_ps(.5), _mm512_add_ps(lhl, rhl));
-        __m512 lv0 = _mm512_mul_ps(lhl, Sleef_logd8_u35(_mm512_div_ps(lhl, mv)));
-        __m512 rv0 = _mm512_mul_ps(rhl, Sleef_logd8_u35(_mm512_div_ps(rhl, mv)));
+        __m512 lv0 = _mm512_mul_ps(lhl, Sleef_logf16_u35(_mm512_div_ps(lhl, mv)));
+        __m512 rv0 = _mm512_mul_ps(rhl, Sleef_logf16_u35(_mm512_div_ps(rhl, mv)));
         sum= _mm512_add_ps(sum, _mm512_add_ps(lv0, rv0));
     }
     ret += .5f * (_mm512_reduce_add_ps(sum));
