@@ -217,7 +217,7 @@ double llr_reduce_aligned_f(const float *const __restrict__ lhs, const float *co
     for(i *= nperel;i < n; ++i) {
         float xv = lhs[i] + lhinc;
         float yv = rhs[i] + rhinc;
-        float mnv = (xv + yv) * .5;
+        float mnv = (xv * lambda + yv * m1l);
         ret += lambda * xv * logf(xv / mnv) + m1l * rhs[i] * logf(yv / mnv);
     }
 #elif __AVX2__
@@ -298,6 +298,177 @@ double llr_reduce_aligned_f(const float *const __restrict__ lhs, const float *co
     return ret;
 }
 
+double jsd_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhinc, float rhinc)
+{
+    double ret = 0.;
+    size_t i = 0;
+#if __AVX512F__
+    const size_t nperel = sizeof(__m512) / sizeof(float);
+    __m512 sum = _mm512_setzero_ps();
+    size_t nsimd = n / nperel;
+    //
+    __m512 lhv = _mm512_set1_ps(lhinc);
+    __m512 rhv = _mm512_set1_ps(rhinc);
+    #pragma GCC unroll 4
+    for(i = 0; i < nsimd; ++i) {
+        __m512 lhl = _mm512_add_ps(_mm512_load_ps(&lhs[i * nperel]), lhv);
+        __m512 rhl = _mm512_add_ps(_mm512_load_ps(&rhs[i * nperel]), rhv);
+        __m512 mv = _mm512_mul_ps(_mm512_set1_ps(.5), _mm512_add_ps(lhl, rhl));
+        __m512 lv0 = _mm512_mul_ps(lhl, Sleef_logd8_u35(_mm512_div_ps(lhl, mv)));
+        __m512 rv0 = _mm512_mul_ps(rhl, Sleef_logd8_u35(_mm512_div_ps(rhl, mv)));
+        sum= _mm512_add_ps(sum, _mm512_add_ps(lv0, rv0));
+    }
+    ret += .5f * (_mm512_reduce_add_ps(sum));
+    for(i *= nperel;i < n; ++i) {
+        float xv = lhs[i] + lhinc;
+        float yv = rhs[i] + rhinc;
+        float mnv = (xv + yv) * .5f;
+        ret += .5f * (xv * log(xv / mnv) + yv * log(yv / mnv));
+    }
+#elif __AVX2__
+    const size_t nperel = sizeof(__m256) / sizeof(float);
+    __m256 sum = _mm256_setzero_ps();
+    size_t nsimd = n / nperel;
+    __m256 lhv = _mm256_set1_ps(lhinc);
+    __m256 rhv = _mm256_set1_ps(rhinc);
+    #pragma GCC unroll 4
+    for(i = 0; i < nsimd; ++i) {
+        __m256 lhl = _mm256_add_ps(_mm256_load_ps(&lhs[i * nperel]), lhv);
+        __m256 rhl = _mm256_add_ps(_mm256_load_ps(&rhs[i * nperel]), rhv);
+        __m256 mv = _mm256_mul_ps(_mm256_set1_ps(.5), _mm256_add_ps(lhl, rhl));
+        __m256 lv0 = _mm256_mul_ps(lhl, Sleef_logf8_u35(_mm256_div_ps(lhl, mv)));
+        __m256 rv0 = _mm256_mul_ps(rhl, Sleef_logf8_u35(_mm256_div_ps(rhl, mv)));
+        sum = _mm256_add_ps(sum, _mm256_add_ps(lv0, rv0));
+    }
+    ret += .5 * (broadcast_reduce_add_si256_ps(sum)[0]);
+    for(i *= nperel;i < n; ++i) {
+        float xv = lhs[i] + lhinc;
+        float yv = rhs[i] + rhinc;
+        float mnv = (xv + yv) * .5;
+        ret += .5 * (xv * log(xv / mnv) + yv * log(yv / mnv));
+    }
+
+#elif __SSE2__
+    const size_t nperel = sizeof(__m128) / sizeof(float);
+    __m128 sum = _mm_setzero_ps();
+    size_t nsimd = n / nperel;
+    __m128 lhv = _mm_set1_ps(lhinc);
+    __m128 rhv = _mm_set1_ps(rhinc);
+    #pragma GCC unroll 4
+    for(i = 0; i < nsimd; ++i) {
+        __m128 lhl = _mm_add_ps(_mm_load_ps(&lhs[i * nperel]), lhv);
+        __m128 rhl = _mm_add_ps(_mm_load_ps(&rhs[i * nperel]), rhv);
+        __m128 mv = _mm_mul_ps(_mm_set1_ps(.5), _mm_add_ps(lhl, rhl));
+        __m128 lv0 = _mm_mul_ps(lhl, Sleef_logf4_u35(_mm_div_ps(lhl, mv)));
+        __m128 rv0 = _mm_mul_ps(rhl, Sleef_logf4_u35(_mm_div_ps(rhl, mv)));
+        sum = _mm_add_ps(sum, _mm_add_ps(lv0, rv0));
+    }
+    ret += .5 * (sum[0] + sum[1] + sum[2] + sum[3]);
+    for(i *= nperel;i < n; ++i) {
+        float xv = lhs[i] + lhinc;
+        float yv = rhs[i] + rhinc;
+        float mnv = (xv + yv) * .5;
+        ret += .5 * (xv * log(xv / mnv) + yv * log(yv / mnv));
+    }
+#else
+    for(;i < n; ++i) {
+        float lhv = lhs[i] + lhinc;
+        float rhv = rhs[i] + rhinc;
+        float miv = (lhv + rhv) * .5;
+        lhsum += lhv * log(lhv / miv);
+        rhsum += rhv * log(rhv / miv);
+        ret += lhv * log(lhv / miv) + rhv * log(rhv / miv);
+    }
+    ret *= .5;
+#endif
+    return ret;
+}
+double jsd_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lhinc, double rhinc)
+{
+    double ret = 0.;
+    size_t i = 0;
+#if __AVX512F__
+    const size_t nperel = sizeof(__m512d) / sizeof(double);
+    __m512d lhsum = _mm512_setzero_pd(), rhsum = _mm512_setzero_pd();
+    size_t nsimd = n / nperel;
+    //
+    __m512d lhv = _mm512_set1_pd(lhinc);
+    __m512d rhv = _mm512_set1_pd(rhinc);
+    #pragma GCC unroll 4
+    for(i = 0; i < nsimd; ++i) {
+        __m512d lhl = _mm512_add_pd(_mm512_load_pd(&lhs[i * nperel]), lhv);
+        __m512d rhl = _mm512_add_pd(_mm512_load_pd(&rhs[i * nperel]), rhv);
+        __m512d mv = _mm512_mul_pd(_mm512_set1_pd(.5), _mm512_add_pd(lhl, rhl));
+        __m512d lv0 = _mm512_mul_pd(lhl, Sleef_logd8_u35(_mm512_div_pd(lhl, mv)));
+        __m512d rv0 = _mm512_mul_pd(rhl, Sleef_logd8_u35(_mm512_div_pd(rhl, mv)));
+        lhsum = _mm512_add_pd(lhsum, lv0);
+        rhsum = _mm512_add_pd(rhsum, rv0);
+    }
+    ret += .5 * (_mm512_reduce_add_pd(lhsum) + _mm512_reduce_add_pd(rhsum));
+    for(i *= nperel;i < n; ++i) {
+        double xv = lhs[i] + lhinc;
+        double yv = rhs[i] + rhinc;
+        double mnv = (xv + yv) * .5;
+        ret += .5 * (xv * log(xv / mnv) + yv * log(yv / mnv));
+    }
+#elif __AVX2__
+    const size_t nperel = sizeof(__m256d) / sizeof(double);
+    __m256d sum = _mm256_setzero_pd();
+    size_t nsimd = n / nperel;
+    __m256d lhv = _mm256_set1_pd(lhinc);
+    __m256d rhv = _mm256_set1_pd(rhinc);
+    #pragma GCC unroll 4
+    for(i = 0; i < nsimd; ++i) {
+        __m256d lhl = _mm256_add_pd(_mm256_load_pd(&lhs[i * nperel]), lhv);
+        __m256d rhl = _mm256_add_pd(_mm256_load_pd(&rhs[i * nperel]), rhv);
+        __m256d mv = _mm256_mul_pd(_mm256_set1_pd(.5), _mm256_add_pd(lhl, rhl));
+        __m256d lv0 = _mm256_mul_pd(lhl, Sleef_logd4_u35(_mm256_div_pd(lhl, mv)));
+        __m256d rv0 = _mm256_mul_pd(rhl, Sleef_logd4_u35(_mm256_div_pd(rhl, mv)));
+        sum = _mm256_add_pd(sum, _mm256_add_pd(lv0, rv0));
+    }
+    ret += .5 * hsum_double_avx(sum);
+    for(i *= nperel;i < n; ++i) {
+        double xv = lhs[i] + lhinc;
+        double yv = rhs[i] + rhinc;
+        double mnv = (xv + yv) * .5;
+        ret += .5 * (xv * log(xv / mnv) + yv * log(yv / mnv));
+    }
+
+#elif __SSE2__
+    const size_t nperel = sizeof(__m128d) / sizeof(double);
+    __m128d sum = _mm_setzero_pd();
+    size_t nsimd = n / nperel;
+    __m128d lhv = _mm_set1_pd(lhinc);
+    __m128d rhv = _mm_set1_pd(rhinc);
+    #pragma GCC unroll 4
+    for(i = 0; i < nsimd; ++i) {
+        __m128d lhl = _mm_add_pd(_mm_load_pd(&lhs[i * nperel]), lhv);
+        __m128d rhl = _mm_add_pd(_mm_load_pd(&rhs[i * nperel]), rhv);
+        __m128d mv = _mm_mul_pd(_mm_set1_pd(.5), _mm_add_pd(lhl, rhl));
+        __m128d lv0 = _mm_mul_pd(lhl, Sleef_logd2_u35(_mm_div_pd(lhl, mv)));
+        __m128d rv0 = _mm_mul_pd(rhl, Sleef_logd2_u35(_mm_div_pd(rhl, mv)));
+        sum = _mm_add_pd(sum, _mm_add_pd(lv0, rv0));
+    }
+    ret += .5 * (sum[0] + sum[1]);
+    for(i *= nperel;i < n; ++i) {
+        double xv = lhs[i] + lhinc;
+        double yv = rhs[i] + rhinc;
+        double mnv = (xv + yv) * .5;
+        ret += .5 * (xv * log(xv / mnv) + yv * log(yv / mnv));
+    }
+#else
+    for(;i < n; ++i) {
+        double lhv = lhs[i] + lhinc;
+        double rhv = rhs[i] + rhinc;
+        double miv = (lhv + rhv) * .5;
+        lhsum += lhv * log(lhv / miv);
+        rhsum += rhv * log(rhv / miv);
+        ret += lhv * log(lhv / miv) + rhv * log(rhv / miv);
+    }
+    ret *= .5;
+#endif
+    return ret;
+}
 double llr_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lambda, double lhinc, double rhinc)
 {
     const double m1l = 1. - lambda;
@@ -335,7 +506,7 @@ double llr_reduce_aligned_d(const double *const __restrict__ lhs, const double *
     for(i *= nperel;i < n; ++i) {
         double xv = lhs[i] + lhinc;
         double yv = rhs[i] + rhinc;
-        double mnv = (xv + yv) * .5;
+        double mnv = (xv * lambda + yv * m1v);
         ret += lambda * xv * log(xv / mnv) + m1l * yv * log(yv / mnv);
     }
 #elif __AVX2__
@@ -617,7 +788,7 @@ double llr_reduce_unaligned_f(const float *const __restrict__ lhs, const float *
     for(i *= nperel;i < n; ++i) {
         float xv = lhs[i] + lhinc;
         float yv = rhs[i] + rhinc;
-        float mnv = (xv + yv) * .5;
+        float mnv = (xv * lambda + yv * m1l);
         ret += lambda * xv * logf(xv / mnv) + m1l * rhs[i] * logf(yv / mnv);
     }
 #elif __AVX2__
@@ -734,7 +905,7 @@ double llr_reduce_unaligned_d(const double *const __restrict__ lhs, const double
     for(i *= nperel;i < n; ++i) {
         double xv = lhs[i] + lhinc;
         double yv = rhs[i] + rhinc;
-        double mnv = (xv + yv) * .5;
+        double mnv = (xv * lambda + yv * m1l);
         ret += lambda * xv * log(xv / mnv) + m1l * rhs[i] * log(yv / mnv);
     }
 #elif __AVX2__
@@ -810,6 +981,178 @@ double llr_reduce_unaligned_d(const double *const __restrict__ lhs, const double
         rhsum += rhv * log(rhv / miv);
     }
     ret = lambda * lhsum + m1l * rhsum;
+#endif
+    return ret;
+}
+
+double jsd_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhinc, float rhinc)
+{
+    double ret = 0.;
+    size_t i = 0;
+#if __AVX512F__
+    const size_t nperel = sizeof(__m512) / sizeof(float);
+    __m512 sum = _mm512_setzero_ps();
+    size_t nsimd = n / nperel;
+    //
+    __m512 lhv = _mm512_set1_ps(lhinc);
+    __m512 rhv = _mm512_set1_ps(rhinc);
+    #pragma GCC unroll 4
+    for(i = 0; i < nsimd; ++i) {
+        __m512 lhl = _mm512_add_ps(_mm512_loadu_ps(&lhs[i * nperel]), lhv);
+        __m512 rhl = _mm512_add_ps(_mm512_loadu_ps(&rhs[i * nperel]), rhv);
+        __m512 mv = _mm512_mul_ps(_mm512_set1_ps(.5), _mm512_add_ps(lhl, rhl));
+        __m512 lv0 = _mm512_mul_ps(lhl, Sleef_logd8_u35(_mm512_div_ps(lhl, mv)));
+        __m512 rv0 = _mm512_mul_ps(rhl, Sleef_logd8_u35(_mm512_div_ps(rhl, mv)));
+        sum= _mm512_add_ps(sum, _mm512_add_ps(lv0, rv0));
+    }
+    ret += .5f * (_mm512_reduce_add_ps(sum));
+    for(i *= nperel;i < n; ++i) {
+        float xv = lhs[i] + lhinc;
+        float yv = rhs[i] + rhinc;
+        float mnv = (xv + yv) * .5f;
+        ret += .5f * (xv * log(xv / mnv) + yv * log(yv / mnv));
+    }
+#elif __AVX2__
+    const size_t nperel = sizeof(__m256) / sizeof(float);
+    __m256 sum = _mm256_setzero_ps();
+    size_t nsimd = n / nperel;
+    __m256 lhv = _mm256_set1_ps(lhinc);
+    __m256 rhv = _mm256_set1_ps(rhinc);
+    #pragma GCC unroll 4
+    for(i = 0; i < nsimd; ++i) {
+        __m256 lhl = _mm256_add_ps(_mm256_loadu_ps(&lhs[i * nperel]), lhv);
+        __m256 rhl = _mm256_add_ps(_mm256_loadu_ps(&rhs[i * nperel]), rhv);
+        __m256 mv = _mm256_mul_ps(_mm256_set1_ps(.5), _mm256_add_ps(lhl, rhl));
+        __m256 lv0 = _mm256_mul_ps(lhl, Sleef_logf8_u35(_mm256_div_ps(lhl, mv)));
+        __m256 rv0 = _mm256_mul_ps(rhl, Sleef_logf8_u35(_mm256_div_ps(rhl, mv)));
+        sum = _mm256_add_ps(sum, _mm256_add_ps(lv0, rv0));
+    }
+    ret += .5 * (broadcast_reduce_add_si256_ps(sum)[0]);
+    for(i *= nperel;i < n; ++i) {
+        float xv = lhs[i] + lhinc;
+        float yv = rhs[i] + rhinc;
+        float mnv = (xv + yv) * .5;
+        ret += .5 * (xv * log(xv / mnv) + yv * log(yv / mnv));
+    }
+
+#elif __SSE2__
+    const size_t nperel = sizeof(__m128) / sizeof(float);
+    __m128 sum = _mm_setzero_ps();
+    size_t nsimd = n / nperel;
+    __m128 lhv = _mm_set1_ps(lhinc);
+    __m128 rhv = _mm_set1_ps(rhinc);
+    #pragma GCC unroll 4
+    for(i = 0; i < nsimd; ++i) {
+        __m128 lhl = _mm_add_ps(_mm_loadu_ps(&lhs[i * nperel]), lhv);
+        __m128 rhl = _mm_add_ps(_mm_loadu_ps(&rhs[i * nperel]), rhv);
+        __m128 mv = _mm_mul_ps(_mm_set1_ps(.5), _mm_add_ps(lhl, rhl));
+        __m128 lv0 = _mm_mul_ps(lhl, Sleef_logf4_u35(_mm_div_ps(lhl, mv)));
+        __m128 rv0 = _mm_mul_ps(rhl, Sleef_logf4_u35(_mm_div_ps(rhl, mv)));
+        sum = _mm_add_ps(sum, _mm_add_ps(lv0, rv0));
+    }
+    ret += .5 * (sum[0] + sum[1] + sum[2] + sum[3]);
+    for(i *= nperel;i < n; ++i) {
+        float xv = lhs[i] + lhinc;
+        float yv = rhs[i] + rhinc;
+        float mnv = (xv + yv) * .5;
+        ret += .5 * (xv * log(xv / mnv) + yv * log(yv / mnv));
+    }
+#else
+    for(;i < n; ++i) {
+        float lhv = lhs[i] + lhinc;
+        float rhv = rhs[i] + rhinc;
+        float miv = (lhv + rhv) * .5;
+        lhsum += lhv * log(lhv / miv);
+        rhsum += rhv * log(rhv / miv);
+        ret += lhv * log(lhv / miv) + rhv * log(rhv / miv);
+    }
+    ret *= .5;
+#endif
+    return ret;
+}
+double jsd_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lhinc, double rhinc)
+{
+    double ret = 0.;
+    size_t i = 0;
+#if __AVX512F__
+    const size_t nperel = sizeof(__m512d) / sizeof(double);
+    __m512d lhsum = _mm512_setzero_pd(), rhsum = _mm512_setzero_pd();
+    size_t nsimd = n / nperel;
+    //
+    __m512d lhv = _mm512_set1_pd(lhinc);
+    __m512d rhv = _mm512_set1_pd(rhinc);
+    #pragma GCC unroll 4
+    for(i = 0; i < nsimd; ++i) {
+        __m512d lhl = _mm512_add_pd(_mm512_loadu_pd(&lhs[i * nperel]), lhv);
+        __m512d rhl = _mm512_add_pd(_mm512_loadu_pd(&rhs[i * nperel]), rhv);
+        __m512d mv = _mm512_mul_pd(_mm512_set1_pd(.5), _mm512_add_pd(lhl, rhl));
+        __m512d lv0 = _mm512_mul_pd(lhl, Sleef_logd8_u35(_mm512_div_pd(lhl, mv)));
+        __m512d rv0 = _mm512_mul_pd(rhl, Sleef_logd8_u35(_mm512_div_pd(rhl, mv)));
+        lhsum = _mm512_add_pd(lhsum, lv0);
+        rhsum = _mm512_add_pd(rhsum, rv0);
+    }
+    ret += .5 * (_mm512_reduce_add_pd(lhsum) + _mm512_reduce_add_pd(rhsum));
+    for(i *= nperel;i < n; ++i) {
+        double xv = lhs[i] + lhinc;
+        double yv = rhs[i] + rhinc;
+        double mnv = (xv + yv) * .5;
+        ret += .5 * (xv * log(xv / mnv) + yv * log(yv / mnv));
+    }
+#elif __AVX2__
+    const size_t nperel = sizeof(__m256d) / sizeof(double);
+    __m256d sum = _mm256_setzero_pd();
+    size_t nsimd = n / nperel;
+    __m256d lhv = _mm256_set1_pd(lhinc);
+    __m256d rhv = _mm256_set1_pd(rhinc);
+    #pragma GCC unroll 4
+    for(i = 0; i < nsimd; ++i) {
+        __m256d lhl = _mm256_add_pd(_mm256_loadu_pd(&lhs[i * nperel]), lhv);
+        __m256d rhl = _mm256_add_pd(_mm256_loadu_pd(&rhs[i * nperel]), rhv);
+        __m256d mv = _mm256_mul_pd(_mm256_set1_pd(.5), _mm256_add_pd(lhl, rhl));
+        __m256d lv0 = _mm256_mul_pd(lhl, Sleef_logd4_u35(_mm256_div_pd(lhl, mv)));
+        __m256d rv0 = _mm256_mul_pd(rhl, Sleef_logd4_u35(_mm256_div_pd(rhl, mv)));
+        sum = _mm256_add_pd(sum, _mm256_add_pd(lv0, rv0));
+    }
+    ret += .5 * hsum_double_avx(sum);
+    for(i *= nperel;i < n; ++i) {
+        double xv = lhs[i] + lhinc;
+        double yv = rhs[i] + rhinc;
+        double mnv = (xv + yv) * .5;
+        ret += .5 * (xv * log(xv / mnv) + yv * log(yv / mnv));
+    }
+
+#elif __SSE2__
+    const size_t nperel = sizeof(__m128d) / sizeof(double);
+    __m128d sum = _mm_setzero_pd();
+    size_t nsimd = n / nperel;
+    __m128d lhv = _mm_set1_pd(lhinc);
+    __m128d rhv = _mm_set1_pd(rhinc);
+    #pragma GCC unroll 4
+    for(i = 0; i < nsimd; ++i) {
+        __m128d lhl = _mm_add_pd(_mm_loadu_pd(&lhs[i * nperel]), lhv);
+        __m128d rhl = _mm_add_pd(_mm_loadu_pd(&rhs[i * nperel]), rhv);
+        __m128d mv = _mm_mul_pd(_mm_set1_pd(.5), _mm_add_pd(lhl, rhl));
+        __m128d lv0 = _mm_mul_pd(lhl, Sleef_logd2_u35(_mm_div_pd(lhl, mv)));
+        __m128d rv0 = _mm_mul_pd(rhl, Sleef_logd2_u35(_mm_div_pd(rhl, mv)));
+        sum = _mm_add_pd(sum, _mm_add_pd(lv0, rv0));
+    }
+    ret += .5 * (sum[0] + sum[1]);
+    for(i *= nperel;i < n; ++i) {
+        double xv = lhs[i] + lhinc;
+        double yv = rhs[i] + rhinc;
+        double mnv = (xv + yv) * .5;
+        ret += .5 * (xv * log(xv / mnv) + yv * log(yv / mnv));
+    }
+#else
+    for(;i < n; ++i) {
+        double lhv = lhs[i] + lhinc;
+        double rhv = rhs[i] + rhinc;
+        double miv = (lhv + rhv) * .5;
+        lhsum += lhv * log(lhv / miv);
+        rhsum += rhv * log(rhv / miv);
+        ret += lhv * log(lhv / miv) + rhv * log(rhv / miv);
+    }
+    ret *= .5;
 #endif
     return ret;
 }
