@@ -10,10 +10,10 @@ int main() {
     size_t nelem = 100000;
     if(const char *s = std::getenv("NELEM"))
         nelem = std::strtoull(s, nullptr, 10);
-    posix_memalign((void **)&v1, 64, sizeof(*v1) * nelem);
-    posix_memalign((void **)&v2, 64, sizeof(*v2) * nelem);
-    posix_memalign((void **)&v3, 64, sizeof(*v3) * nelem);
-    posix_memalign((void **)&v4, 64, sizeof(*v4) * nelem);
+    if(posix_memalign((void **)&v1, 64, sizeof(*v1) * nelem)) throw 1;
+    if(posix_memalign((void **)&v2, 64, sizeof(*v2) * nelem)) throw 2;
+    if(posix_memalign((void **)&v3, 64, sizeof(*v3) * nelem)) throw 3;
+    if(posix_memalign((void **)&v4, 64, sizeof(*v4) * nelem)) throw 4;
     double vs1 = 0., vs2 = 0., vs3 = 0., vs4 = 0.;
     for(size_t i = 0; i < nelem; ++i) {
         v1[i] = std::rand() % 64 + 0.1;

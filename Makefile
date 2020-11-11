@@ -13,7 +13,7 @@ WARNINGS+=-Wall -Wextra -Wpointer-arith -Wformat -Wunused-variable -Wno-attribut
 EXTRA+=-fPIC -O3 -march=native -flto
 ND=-DNDEBUG
 
-all: libkl.so llr_testing libkl.a libkl.dylib test
+all: libkl.so libkl.a libkl.dylib libkl.o
 
 libkl.o: libkl.c libkl.h
 	$(CC) $< -o $@ -c $(INCLUDE) $(LIB) $(WARNINGS) $(EXTRA) -std=c11 $(ND)
