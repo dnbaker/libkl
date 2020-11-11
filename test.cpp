@@ -17,7 +17,7 @@ int main_fn() {
     posix_memalign((void **)&v1, 64, sizeof(*v1) * nelem);
     posix_memalign((void **)&v2, 64, sizeof(*v2) * nelem);
     posix_memalign((void **)&v3, 64, sizeof(*v3) * nelem);
-    T vs1 = 0., vs2 = 0., vs3 = 0.;
+    T vs1 = 0., vs2 = 0.;
     for(size_t i = 0; i < nelem; ++i) {
         v1[i] = i;
         v2[i] = i;
@@ -34,17 +34,14 @@ int main_fn() {
         v2[i] /= (vs2 + psum);
         v1[i] /= (vs1 + psum);
     }
-    auto v1sum = std::accumulate(v1, v1 + nelem, 0.);
-    auto v2sum = std::accumulate(v2, v2 + nelem, 0.);
     T lhi = prior / (vs1 + psum), rhi = prior / (vs2 + psum);
     //fprintf(stderr, "sums after norm: %g, %g. With psum: %g, %g\n", v1sum, v2sum, v1sum + lhi * nelem, v2sum + rhi * nelem);
-    auto start = std::chrono::high_resolution_clock::now();
     //fprintf(stderr, "lhi: %g: rhi: %g.\n", lhi, rhi);
     T v11_man = 0.;
     for(size_t i = 0; i < nelem; ++i) {
-        auto xv = v1[i] + lhi, yv = v2[i] + rhi;
+        T xv = v1[i] + lhi, yv = v2[i] + rhi;
         auto mnv = (xv * lambda  + yv * m1v);
-        auto xc = xv * std::log(xv / mnv);
+        T xc = xv * std::log(xv / mnv);
         auto yc = yv * std::log(yv / mnv);
         auto c = lambda * xc + m1v * yc;
         //fprintf(stderr, "mnv: %g. x: %g. y: %g\n", mnv, v1[i], v2[i]);
@@ -75,12 +72,12 @@ int main_fn() {
     }
     assert(s == 0.);
 // Next, test scaling
-    std::transform(v1, v1 + nelem, v1, [](auto x) {return 2 * x + 1;});
-    std::transform(v2, v2 + nelem, v2, [](auto x) {return 2 * x + 1;});
+    std::transform(v1, v1 + nelem, v1, [](T x) {return 2 * x + 1;});
+    std::transform(v2, v2 + nelem, v2, [](T x) {return 2 * x + 1;});
     T v1s = std::accumulate(v1, v1 + nelem, 0.),
            v2s = std::accumulate(v2, v2 + nelem, 0.);
-    std::transform(v1, v1 + nelem, v1, [v1s](auto x) {return x / v1s;});
-    std::transform(v2, v2 + nelem, v2, [v2s](auto x) {return x / v2s;});
+    std::transform(v1, v1 + nelem, v1, [v1s](T x) {return x / v1s;});
+    std::transform(v2, v2 + nelem, v2, [v2s](T x) {return x / v2s;});
     lambda = (std::accumulate(v1, v1 + nelem, 0.) / (std::accumulate(v1, v1 + nelem, 0.) + std::accumulate(v2, v2 + nelem, 0.)));
     assert(llr_reduce_aligned(v1, v2, nelem, lambda, 0., 0.) == 0.);
 
@@ -92,8 +89,8 @@ int main_fn() {
     v1s = std::accumulate(v1, v1 + nelem, 0.) + 1. * nelem;
     v2s = std::accumulate(v2, v2 + nelem, 0.) + 1. * nelem;
     lhi = 1. / (v1s), rhi = 1. / (v1s);
-    std::transform(v1, v1 + nelem, v1, [v1s](auto x) {return x / v1s;});
-    std::transform(v2, v2 + nelem, v2, [v2s](auto x) {return x / v2s;});
+    std::transform(v1, v1 + nelem, v1, [v1s](T x) {return x / v1s;});
+    std::transform(v2, v2 + nelem, v2, [v2s](T x) {return x / v2s;});
     v1s = std::accumulate(v1, v1 + nelem, 0.),
     v2s = std::accumulate(v2, v2 + nelem, 0.);
     fprintf(stderr, "Testing aligned kl reduction. sum lhs: %g. sum rhs: %g. (%g/%g)\n", v1s, v2s, v1s + lhi * nelem, v2s + rhi * nelem);
@@ -107,7 +104,6 @@ int main_fn() {
 
 
     //std::fprintf(stderr, "Manual value: %g. Value via llr_reduce_aligned: %g\n", s, v12);
-    auto stop = std::chrono::high_resolution_clock::now();
     fprintf(stderr, "[%s] Finished \n", __PRETTY_FUNCTION__);
     return 0;
 }
