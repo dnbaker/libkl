@@ -13,7 +13,7 @@ WARNINGS+=-Wall -Wextra -Wpointer-arith -Wformat -Wunused-variable -Wno-attribut
 EXTRA+=-fPIC -O3 -march=native -flto
 ND=-DNDEBUG
 
-all: libkl.so libkl.a libkl.dylib libkl.o
+all: libkl.so libkl.a libkl.o
 KLCMD=
 ifeq ($(shell uname),Darwin)
     KLCMD+= && $(CC) -dynamiclib libkl.c  -o $(shell pwd)/libkl.dylib $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA) -std=c11 $(ND)
