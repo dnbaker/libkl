@@ -19,10 +19,10 @@ libkl.o: libkl.c libkl.h
 	$(CC) $< -o $@ -c $(INCLUDE) $(LIB) $(WARNINGS) $(EXTRA) -std=c11 $(ND)
 
 libkl.so: libkl.c
-	$(CC) -shared $<  -o $@ $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA) -std=c11 $(ND)
+	$(CC) -shared $<  -o $(shell pwd)/$@ $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA) -std=c11 $(ND)
 
 libkl.dylib: libkl.c
-	$(CC) -dynamiclib $<  -o $@ $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA) -std=c11 $(ND)
+	$(CC) -dynamiclib $<  -o $(shell pwd)/$@ $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA) -std=c11 $(ND)
 
 libkl.a: libkl.o
 	$(AR) rcs $@ $<
