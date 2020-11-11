@@ -18,7 +18,7 @@ libkl.o: libkl.c libkl.h
 	$(CC) $< -o $@ -c $(INCLUDE) $(LIB) $(WARNINGS) $(EXTRA) -std=c11
 
 libkl.so: libkl.c
-	$(CC) -shared $<  -o $@ $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA) -std=c=11
+	$(CC) -shared $<  -o $@ $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA) -std=c11
 
 libkl.a: libkl.o
 	$(AR) rcs $@ $<
