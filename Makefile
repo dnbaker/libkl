@@ -14,15 +14,16 @@ EXTRA+=-fPIC -O3 -march=native -flto
 ND=-DNDEBUG
 
 all: libkl.so libkl.a libkl.dylib libkl.o
+KLCMD=
+ifeq ($(shell uname),Darwin)
+    KLCMD+= && $(CC) -dynamiclib libkl.c  -o $(shell pwd)/libkl.dylib $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA) -std=c11 $(ND)
+endif
 
 libkl.o: libkl.c libkl.h
 	$(CC) $< -o $@ -c $(INCLUDE) $(LIB) $(WARNINGS) $(EXTRA) -std=c11 $(ND)
 
 libkl.so: libkl.c
-	$(CC) -shared $<  -o $(shell pwd)/$@ $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA) -std=c11 $(ND)
-
-libkl.dylib: libkl.c
-	$(CC) -dynamiclib $<  -o $(shell pwd)/$@ $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA) -std=c11 $(ND)
+	$(CC) -shared $<  -o $(shell pwd)/$@ $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA) -std=c11 $(ND) $(KLCMD)
 
 libkl.a: libkl.o
 	$(AR) rcs $@ $<
