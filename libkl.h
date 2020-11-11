@@ -14,18 +14,31 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+// KL divergence
 LIBKL_API double kl_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi);
 LIBKL_API double kl_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi);
 LIBKL_API double kl_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi);
 LIBKL_API double kl_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi);
+// Jensen-Shannon divergence
 LIBKL_API double jsd_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi);
 LIBKL_API double jsd_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi);
 LIBKL_API double jsd_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi);
 LIBKL_API double jsd_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi);
+// Multinomial Log-likelihood ratio test
 LIBKL_API double llr_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lambda, double lhinc, double rhinc);
 LIBKL_API double llr_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, double lambda, float lhinc, float rhinc);
 LIBKL_API double llr_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lambda, double lhinc, double rhinc);
 LIBKL_API double llr_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, double lambda, float lhinc, float rhinc);
+// Itakura-Saito distance
+LIBKL_API double is_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi);
+LIBKL_API double is_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi);
+LIBKL_API double is_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi);
+LIBKL_API double is_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi);
+// Symmetrized Itakura-Saito distance
+LIBKL_API double sis_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi);
+LIBKL_API double sis_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi);
+LIBKL_API double sis_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi);
+LIBKL_API double sis_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi);
 
 #ifdef __cplusplus
 } // extern "C" 
@@ -43,6 +56,30 @@ static inline double jsd_reduce_aligned(const double *const __restrict__ lhs, co
 }
 static inline double jsd_reduce_aligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
     return jsd_reduce_aligned_f(lhs, rhs, n, lhi, rhi);
+}
+static inline double sis_reduce_unaligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
+    return sis_reduce_unaligned_d(lhs, rhs, n, lhi, rhi);
+}
+static inline double sis_reduce_unaligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
+    return sis_reduce_unaligned_f(lhs, rhs, n, lhi, rhi);
+}
+static inline double sis_reduce_aligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
+    return sis_reduce_aligned_d(lhs, rhs, n, lhi, rhi);
+}
+static inline double sis_reduce_aligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
+    return sis_reduce_aligned_f(lhs, rhs, n, lhi, rhi);
+}
+static inline double is_reduce_unaligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
+    return is_reduce_unaligned_d(lhs, rhs, n, lhi, rhi);
+}
+static inline double is_reduce_unaligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
+    return is_reduce_unaligned_f(lhs, rhs, n, lhi, rhi);
+}
+static inline double is_reduce_aligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
+    return is_reduce_aligned_d(lhs, rhs, n, lhi, rhi);
+}
+static inline double is_reduce_aligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
+    return is_reduce_aligned_f(lhs, rhs, n, lhi, rhi);
 }
 static inline double kl_reduce_unaligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi) {
     return kl_reduce_unaligned_d(lhs, rhs, n, lhi, rhi);
@@ -95,6 +132,62 @@ static inline double llr_reduce(const double *const __restrict__ lhs, const doub
         return llr_reduce_aligned_d(lhs, rhs, n, lambda, lhinc, rhinc);
     else
         return llr_reduce_unaligned_d(lhs, rhs, n, lambda, lhinc, rhinc);
+}
+static inline double is_reduce(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhinc, float rhinc) {
+#if __AVX512F__
+    if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
+#elif __AVX2__
+    if((uint64_t)lhs % 32 == 0 && (uint64_t)rhs % 32 == 0)
+#elif __SSE2__
+    if((uint64_t)lhs % 16 == 0 && (uint64_t)rhs % 16 == 0)
+#else
+    if(1)
+#endif
+        return is_reduce_aligned_f(lhs, rhs, n, lhinc, rhinc);
+    else
+        return is_reduce_unaligned_f(lhs, rhs, n, lhinc, rhinc);
+}
+static inline double is_reduce(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lhinc, double rhinc) {
+#if __AVX512F__
+    if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
+#elif __AVX2__
+    if((uint64_t)lhs % 32 == 0 && (uint64_t)rhs % 32 == 0)
+#elif __SSE2__
+    if((uint64_t)lhs % 16 == 0 && (uint64_t)rhs % 16 == 0)
+#else
+    if(1)
+#endif
+        return is_reduce_aligned_d(lhs, rhs, n, lhinc, rhinc);
+    else
+        return is_reduce_unaligned_d(lhs, rhs, n, lhinc, rhinc);
+}
+static inline double sis_reduce(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhinc, float rhinc) {
+#if __AVX512F__
+    if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
+#elif __AVX2__
+    if((uint64_t)lhs % 32 == 0 && (uint64_t)rhs % 32 == 0)
+#elif __SSE2__
+    if((uint64_t)lhs % 16 == 0 && (uint64_t)rhs % 16 == 0)
+#else
+    if(1)
+#endif
+        return sis_reduce_aligned_f(lhs, rhs, n, lhinc, rhinc);
+    else
+        return sis_reduce_unaligned_f(lhs, rhs, n, lhinc, rhinc);
+}
+static inline double sis_reduce(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lhinc, double rhinc) {
+#if __AVX512F__
+    if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
+#elif __AVX2__
+    if((uint64_t)lhs % 32 == 0 && (uint64_t)rhs % 32 == 0)
+#elif __SSE2__
+    if((uint64_t)lhs % 16 == 0 && (uint64_t)rhs % 16 == 0)
+#else
+    if(1)
+#endif
+        return sis_reduce_aligned_d(lhs, rhs, n, lhinc, rhinc);
+    else
+        return sis_reduce_unaligned_d(lhs, rhs, n, lhinc, rhinc);
 }
 static inline double kl_reduce(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhinc, float rhinc) {
 #if __AVX512F__

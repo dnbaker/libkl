@@ -28,7 +28,7 @@ libkl.a: libkl.o
 	$(AR) rcs $@ $<
 
 %: %.cpp libkl.so
-	$(CXX) -L. -lkl $< -o $@ -Wall -Wextra $(WARNINGS) $(EXTRA) -std=c++11
+	$(CXX) -L. -lkl $< -o $@ -Wall -Wextra $(WARNINGS) $(EXTRA) $(INCLUDE) $(LIB) -std=c++11
 
 clean:
 	rm -f libkl.so llr_testing libkl.a libkl.o test llr_testing
