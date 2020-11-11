@@ -276,6 +276,7 @@ LIBKL_API double kl_reduce_unaligned_d(const double *const __restrict__ lhs, con
         oret += lhv * logf(lhv / rhv);
     }
     assert(fabs(oret - ret) < 1e-5);
+#endif
     return ret;
 }
 
@@ -343,6 +344,7 @@ LIBKL_API double kl_reduce_unaligned_f(const float *const __restrict__ lhs, cons
         oret += lhv * logf(lhv / rhv);
     }
     assert(fabs(oret - ret) < 1e-5);
+#endif
     return ret;
 }
 
@@ -370,7 +372,6 @@ LIBKL_API double sis_reduce_aligned_f(const float *const __restrict__ lhs, const
     assert(((uint64_t)lhs) % 32 == 0);
     const size_t nper = sizeof(__m256) / sizeof(float);
     const size_t nsimd = n / nper;
-    const size_t nsimd4 = (nsimd / 4) * 4;
 
     __m256 sum = _mm256_set1_ps(0.);
     for(; i < nsimd; ++i) {
@@ -404,9 +405,9 @@ LIBKL_API double sis_reduce_aligned_f(const float *const __restrict__ lhs, const
         float divf = lhv / rhv, divr = rhv / lhv;
         ret += logf(divf + divr + 2.);
     }
-    assert(fabs(oret - ret) < 1e-5);
     return ret;
 }
+
 LIBKL_API double sis_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi)
 {
     double ret = 0.;
@@ -461,10 +462,9 @@ LIBKL_API double sis_reduce_aligned_d(const double *const __restrict__ lhs, cons
     for(; i < n; ++i) {
         double lhv = lhs[i] + lhi;
         double rhv = rhs[i] + rhi;
-        double divf = lhv / rhv, div4 = rhv / lhv;
+        double divf = lhv / rhv, divr = rhv / lhv;
         ret += logf(divf + divr + 2.);
     }
-    assert(fabs(oret - ret) < 1e-5);
     return ret;
 }
 LIBKL_API double sis_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi)
@@ -491,7 +491,6 @@ LIBKL_API double sis_reduce_unaligned_f(const float *const __restrict__ lhs, con
     assert(((uint64_t)lhs) % 32 == 0);
     const size_t nper = sizeof(__m256) / sizeof(float);
     const size_t nsimd = n / nper;
-    const size_t nsimd4 = (nsimd / 4) * 4;
 
     __m256 sum = _mm256_set1_ps(0.);
     for(; i < nsimd; ++i) {
@@ -522,11 +521,9 @@ LIBKL_API double sis_reduce_unaligned_f(const float *const __restrict__ lhs, con
     for(; i < n; ++i) {
         float lhv = lhs[i] + lhi;
         float rhv = rhs[i] + rhi;
-        float divf = lhv / rhv, div4 = rhv / lhv;
+        float divf = lhv / rhv, divr = rhv / lhv;
         ret += logf(divf + divr + 2.);
     }
-    assert(fabs(oret - ret) < 1e-5);
-#endif
     return ret;
 }
 LIBKL_API double sis_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi)
@@ -553,7 +550,6 @@ LIBKL_API double sis_reduce_unaligned_d(const double *const __restrict__ lhs, co
     assert(((uint64_t)lhs) % 32 == 0);
     const size_t nper = sizeof(__m256d) / sizeof(double);
     const size_t nsimd = n / nper;
-    const size_t nsimd4 = (nsimd / 4) * 4;
 
     __m256d sum = _mm256_set1_pd(0.);
     for(; i < nsimd; ++i) {
@@ -584,10 +580,9 @@ LIBKL_API double sis_reduce_unaligned_d(const double *const __restrict__ lhs, co
     for(; i < n; ++i) {
         double lhv = lhs[i] + lhi;
         double rhv = rhs[i] + rhi;
-        double divf = lhv / rhv, div4 = rhv / lhv;
+        double divf = lhv / rhv, divr = rhv / lhv;
         ret += logf(divf + divr + 2.);
     }
-#endif
     return ret;
 }
 LIBKL_API double is_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi)
@@ -1632,6 +1627,7 @@ LIBKL_API double jsd_reduce_unaligned_f(const float *const __restrict__ lhs, con
         float mnv = (xv + yv) * .5f;
         ret += .5f * (xv * log(xv / mnv) + yv * log(yv / mnv));
     }
+    i *= nperel;
 #elif __AVX2__
     const size_t nperel = sizeof(__m256) / sizeof(float);
     __m256 sum = _mm256_setzero_ps();
@@ -1654,6 +1650,7 @@ LIBKL_API double jsd_reduce_unaligned_f(const float *const __restrict__ lhs, con
         float mnv = (xv + yv) * .5;
         ret += .5 * (xv * log(xv / mnv) + yv * log(yv / mnv));
     }
+    i *= nperel;
 
 #elif __SSE2__
     const size_t nperel = sizeof(__m128) / sizeof(float);
@@ -1671,26 +1668,17 @@ LIBKL_API double jsd_reduce_unaligned_f(const float *const __restrict__ lhs, con
         sum = _mm_add_ps(sum, _mm_add_ps(lv0, rv0));
     }
     ret += .5 * (sum[0] + sum[1] + sum[2] + sum[3]);
-    for(i *= nperel;i < n; ++i) {
-        float xv = lhs[i] + lhinc;
-        float yv = rhs[i] + rhinc;
-        float mnv = (xv + yv) * .5;
-        ret += .5 * (xv * log(xv / mnv) + yv * log(yv / mnv));
-    }
-#else
-    float lhsum = 0.f, rhsum = 0.f;
+    i *= nperel;
+#endif
     for(;i < n; ++i) {
         float lhv = lhs[i] + lhinc;
         float rhv = rhs[i] + rhinc;
         float miv = (lhv + rhv) * .5;
-        lhsum += lhv * log(lhv / miv);
-        rhsum += rhv * log(rhv / miv);
-        ret += lhv * log(lhv / miv) + rhv * log(rhv / miv);
+        ret += .5 * (lhv * log(lhv / miv) + rhv * log(rhv / miv));
     }
-    ret *= .5;
-#endif
     return ret;
 }
+
 LIBKL_API double jsd_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lhinc, double rhinc)
 {
     double ret = 0.;
