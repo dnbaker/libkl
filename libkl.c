@@ -363,7 +363,7 @@ LIBKL_API double sis_reduce_unaligned_f(const float *const __restrict__ lhs, con
         __m512 rh = _mm512_add_ps(_mm512_loadu_ps(rhs + (i * nper)), _mm512_set1_ps(rhi));
         __m512 divf = _mm512_div_ps(lh, rh);
         __m512 divr = _mm512_div_ps(rh, lh);
-        __m512 divfr = _mm512_mul_ps(_mm512_add_ps(_mm512_add_ps(divf, divr), _mm512_set1_ps(2.)), __m512_set1_ps(0x1p-2));
+        __m512 divfr = _mm512_mul_ps(_mm512_add_ps(_mm512_add_ps(divf, divr), _mm512_set1_ps(2.)), _mm512_set1_ps(0x1p-2));
         sum = _mm512_add_ps(sum, Sleef_logf16_u35(divfr));
         ++i;
     }
@@ -427,7 +427,7 @@ LIBKL_API double sis_reduce_aligned_f(const float *const __restrict__ lhs, const
         __m512 rh = _mm512_add_ps(_mm512_load_ps(rhs + (i * nper)), _mm512_set1_ps(rhi));
         __m512 divf = _mm512_div_ps(lh, rh);
         __m512 divr = _mm512_div_ps(rh, lh);
-        __m512 divfr = _mm512_mul_ps(_mm512_add_ps(_mm512_add_ps(divf, divr), _mm512_set1_ps(2.)), __m512_set1_ps(0x1p-2));
+        __m512 divfr = _mm512_mul_ps(_mm512_add_ps(_mm512_add_ps(divf, divr), _mm512_set1_ps(2.)), _mm512_set1_ps(0x1p-2));
         sum = _mm512_add_ps(sum, Sleef_logf16_u35(divfr));
         ++i;
     }
