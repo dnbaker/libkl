@@ -11,26 +11,6 @@
 #define LIBKL_API
 #endif
 
-#ifdef LIBKL_HIGH_PRECISION
-#  ifndef Sleef_logd2_u35
-#    define Sleef_logd2_u35 Sleef_logd2_u10
-#  endif
-#  ifndef Sleef_logd4_u35
-#    define Sleef_logd4_u35 Sleef_logd4_u10
-#  endif
-#  ifndef Sleef_logd8_u35
-#    define Sleef_logd8_u35 Sleef_logd8_u10
-#  endif
-#  ifndef Sleef_logf4_u35
-#    define Sleef_logf4_u35 Sleef_logf4_u10
-#  endif
-#  ifndef Sleef_logf8_u35
-#    define Sleef_logf8_u35 Sleef_logf8_u10
-#  endif
-#  ifndef Sleef_logf16_u35
-#    define Sleef_logf16_u35 Sleef_logf16_u10
-#  endif
-#endif
 
 #ifdef __cplusplus
 extern "C" {

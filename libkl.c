@@ -13,6 +13,45 @@
 // LOG3 may have better numerical performance, while default will be faster
 // DIV1 seesm to be slower than default and is not recommended.
 
+#ifdef LIBKL_HIGH_PRECISION
+#  ifndef Sleef_logd2_u35
+#    define Sleef_logd2_u35 Sleef_logd2_u10
+#  endif
+#  ifndef Sleef_logd4_u35
+#    define Sleef_logd4_u35 Sleef_logd4_u10
+#  endif
+#  ifndef Sleef_logd8_u35
+#    define Sleef_logd8_u35 Sleef_logd8_u10
+#  endif
+#  ifndef Sleef_logf4_u35
+#    define Sleef_logf4_u35 Sleef_logf4_u10
+#  endif
+#  ifndef Sleef_logf8_u35
+#    define Sleef_logf8_u35 Sleef_logf8_u10
+#  endif
+#  ifndef Sleef_logf16_u35
+#    define Sleef_logf16_u35 Sleef_logf16_u10
+#  endif
+#  ifndef Sleef_sqrtd2_u35
+#    define Sleef_sqrtd2_u35 Sleef_sqrtd2_u05
+#  endif
+#  ifndef Sleef_sqrtd4_u35
+#    define Sleef_sqrtd4_u35 Sleef_sqrtd4_u05
+#  endif
+#  ifndef Sleef_sqrtd8_u35
+#    define Sleef_sqrtd8_u35 Sleef_sqrtd8_u05
+#  endif
+#  ifndef Sleef_sqrtf4_u35
+#    define Sleef_sqrtf4_u35 Sleef_sqrtf4_u05
+#  endif
+#  ifndef Sleef_sqrtf8_u35
+#    define Sleef_sqrtf8_u35 Sleef_sqrtf8_u05
+#  endif
+#  ifndef Sleef_sqrtf16_u35
+#    define Sleef_sqrtf16_u35 Sleef_sqrtf16_u05
+#  endif
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -1831,22 +1870,22 @@ LIBKL_API double Name(const T *const __restrict__ lhs, const T *const __restrict
 }
 
 #ifdef __AVX512F__
-__D_BSIM_FUNC(double, __m512d, _mm512_loadu_pd, _mm512_add_pd, _mm512_set1_pd, Sleef_sqrtd8_u05, _mm512_setzero_pd, dbhattd_reduce_unaligned_avx512, _mm512_reduce_add_pdd, _mm512_mul_pd)
-__D_BSIM_FUNC(double, __m512d, _mm512_load_pd, _mm512_add_pd, _mm512_set1_pd, Sleef_sqrtd8_u05, _mm512_setzero_pd, dbhattd_reduce_aligned_avx512, _mm512_reduce_add_pdd, _mm512_mul_pd)
-__D_BSIM_FUNC(float, __m512, _mm512_loadu_ps, _mm512_add_ps, _mm512_set1_ps, Sleef_sqrtf16_u05, _mm512_setzero_ps, fbhattd_reduce_unaligned_avx512, _mm512_reduce_add_psf, _mm512_mul_ps)
-__D_BSIM_FUNC(float, __m512, _mm512_load_ps, _mm512_add_ps, _mm512_set1_ps, Sleef_sqrtf16_u05, _mm512_setzero_ps, fbhattd_reduce_aligned_avx512, _mm512_reduce_add_psf, _mm512_mul_ps)
+__D_BSIM_FUNC(double, __m512d, _mm512_loadu_pd, _mm512_add_pd, _mm512_set1_pd, Sleef_sqrtd8_u35, _mm512_setzero_pd, dbhattd_reduce_unaligned_avx512, _mm512_reduce_add_pdd, _mm512_mul_pd)
+__D_BSIM_FUNC(double, __m512d, _mm512_load_pd, _mm512_add_pd, _mm512_set1_pd, Sleef_sqrtd8_u35, _mm512_setzero_pd, dbhattd_reduce_aligned_avx512, _mm512_reduce_add_pdd, _mm512_mul_pd)
+__D_BSIM_FUNC(float, __m512, _mm512_loadu_ps, _mm512_add_ps, _mm512_set1_ps, Sleef_sqrtf16_u35, _mm512_setzero_ps, fbhattd_reduce_unaligned_avx512, _mm512_reduce_add_psf, _mm512_mul_ps)
+__D_BSIM_FUNC(float, __m512, _mm512_load_ps, _mm512_add_ps, _mm512_set1_ps, Sleef_sqrtf16_u35, _mm512_setzero_ps, fbhattd_reduce_aligned_avx512, _mm512_reduce_add_psf, _mm512_mul_ps)
 #endif
 #ifdef __AVX2__
-__D_BSIM_FUNC(double, __m256d, _mm256_loadu_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u05, _mm256_setzero_pd, dbhattd_reduce_unaligned_avx256, hsum_double_avx, _mm256_mul_pd)
-__D_BSIM_FUNC(double, __m256d, _mm256_load_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u05, _mm256_setzero_pd, dbhattd_reduce_aligned_avx256, hsum_double_avx, _mm256_mul_pd)
-__D_BSIM_FUNC(float, __m256, _mm256_loadu_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u05, _mm256_setzero_ps, fbhattd_reduce_unaligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps)
-__D_BSIM_FUNC(float, __m256, _mm256_load_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u05, _mm256_setzero_ps, fbhattd_reduce_aligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps)
+__D_BSIM_FUNC(double, __m256d, _mm256_loadu_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dbhattd_reduce_unaligned_avx256, hsum_double_avx, _mm256_mul_pd)
+__D_BSIM_FUNC(double, __m256d, _mm256_load_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dbhattd_reduce_aligned_avx256, hsum_double_avx, _mm256_mul_pd)
+__D_BSIM_FUNC(float, __m256, _mm256_loadu_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, fbhattd_reduce_unaligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps)
+__D_BSIM_FUNC(float, __m256, _mm256_load_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, fbhattd_reduce_aligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps)
 #endif
 #ifdef __SSE2__
-__D_BSIM_FUNC(double, __m128d, _mm_loadu_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u05, _mm_setzero_pd, dbhattd_reduce_unaligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd)
-__D_BSIM_FUNC(double, __m128d, _mm_load_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u05, _mm_setzero_pd, dbhattd_reduce_aligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd)
-__D_BSIM_FUNC(float, __m128, _mm_loadu_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u05, _mm_setzero_ps, fbhattd_reduce_unaligned_sse2, _mm_reduce_add_psf, _mm_mul_ps)
-__D_BSIM_FUNC(float, __m128, _mm_load_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u05, _mm_setzero_ps, fbhattd_reduce_aligned_sse2, _mm_reduce_add_psf, _mm_mul_ps)
+__D_BSIM_FUNC(double, __m128d, _mm_loadu_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dbhattd_reduce_unaligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd)
+__D_BSIM_FUNC(double, __m128d, _mm_load_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dbhattd_reduce_aligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd)
+__D_BSIM_FUNC(float, __m128, _mm_loadu_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, fbhattd_reduce_unaligned_sse2, _mm_reduce_add_psf, _mm_mul_ps)
+__D_BSIM_FUNC(float, __m128, _mm_load_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, fbhattd_reduce_aligned_sse2, _mm_reduce_add_psf, _mm_mul_ps)
 #endif
 
 #undef __D_BSIM_FUNC
@@ -1904,6 +1943,20 @@ LIBKL_API double bhattd_reduce_unaligned_f(const float *const __restrict__ lhs, 
     return ret;
 #endif
 }
+
+#ifdef LIBKL_HIGH_PRECISION
+#undef Sleef_logd2_u35
+#undef Sleef_logd4_u35
+#undef Sleef_logd8_u35
+#undef Sleef_logf4_u35
+#undef Sleef_logf8_u35
+#undef Sleef_logd2_u35
+#undef Sleef_sqrtd4_u35
+#undef Sleef_sqrtd8_u35
+#undef Sleef_sqrtf4_u35
+#undef Sleef_sqrtf8_u35
+#undef Sleef_sqrtf16_u35
+#endif
 
 
 #ifdef __cplusplus
