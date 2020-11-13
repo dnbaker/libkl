@@ -57,6 +57,12 @@ LIBKL_API double tvd_reduce_aligned_d(const double *const __restrict__ lhs, cons
 LIBKL_API double tvd_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhmul, float rhmul, float lhi, float rhi);
 LIBKL_API double tvd_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhmul, double rhmul, double lhi, double rhi);
 LIBKL_API double tvd_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhmul, float rhmul, float lhi, float rhi);
+// Squared L2 distance
+// sum((x - y) * (x - y))
+LIBKL_API double sqrl2_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhmul, double rhmul, double lhi, double rhi);
+LIBKL_API double sqrl2_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhmul, float rhmul, float lhi, float rhi);
+LIBKL_API double sqrl2_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhmul, double rhmul, double lhi, double rhi);
+LIBKL_API double sqrl2_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhmul, float rhmul, float lhi, float rhi);
 
 #ifdef __cplusplus
 } // extern "C" 
