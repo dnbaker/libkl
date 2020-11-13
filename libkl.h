@@ -159,6 +159,18 @@ static inline double helld_reduce_unaligned(const double *const __restrict__ lhs
 static inline double helld_reduce_unaligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhmul, float rhmul, float lhinc, float rhinc) {
     return helld_reduce_unaligned_f(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
 }
+static inline double sqrl2_reduce_aligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n,  double lhmul, double rhmul, double lhinc, double rhinc) {
+    return sqrl2_reduce_aligned_d(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+}
+static inline double sqrl2_reduce_aligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhmul, float rhmul, float lhinc, float rhinc) {
+    return sqrl2_reduce_aligned_f(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+}
+static inline double sqrl2_reduce_unaligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lhmul, double rhmul,  double lhinc, double rhinc) {
+    return sqrl2_reduce_unaligned_d(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+}
+static inline double sqrl2_reduce_unaligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhmul, float rhmul, float lhinc, float rhinc) {
+    return sqrl2_reduce_unaligned_f(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+}
 static inline double llr_reduce(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lambda, float lhinc, float rhinc) {
 #if __AVX512F__
     if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
@@ -382,6 +394,34 @@ static inline double tvd_reduce(const double *const __restrict__ lhs, const doub
         return tvd_reduce_aligned_d(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
     else
         return tvd_reduce_unaligned_d(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+}
+static inline double sqrl2_reduce(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhmul, float rhmul, float lhinc, float rhinc) {
+#if __AVX512F__
+    if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
+#elif __AVX2__
+    if((uint64_t)lhs % 32 == 0 && (uint64_t)rhs % 32 == 0)
+#elif __SSE2__
+    if((uint64_t)lhs % 16 == 0 && (uint64_t)rhs % 16 == 0)
+#else
+    if(1)
+#endif
+        return sqrl2_reduce_aligned_f(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+    else
+        return sqrl2_reduce_unaligned_f(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+}
+static inline double sqrl2_reduce(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lhmul, double rhmul, double lhinc, double rhinc) {
+#if __AVX512F__
+    if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
+#elif __AVX2__
+    if((uint64_t)lhs % 32 == 0 && (uint64_t)rhs % 32 == 0)
+#elif __SSE2__
+    if((uint64_t)lhs % 16 == 0 && (uint64_t)rhs % 16 == 0)
+#else
+    if(1)
+#endif
+        return sqrl2_reduce_aligned_d(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+    else
+        return sqrl2_reduce_unaligned_d(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
 }
 
 } // namespace libkl
