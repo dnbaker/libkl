@@ -58,10 +58,10 @@ extern "C" {
 
 #if __AVX512F__
 static inline __attribute__((always_inline)) float _mm512_reduce_add_psf(__m512 x) {
-    return _mm512_reduce_add_ps(x)[0];
+    return _mm512_reduce_add_ps(x);
 }
 static inline __attribute__((always_inline)) double _mm512_reduce_add_pdd(__m512d x) {
-    return _mm512_reduce_add_pd(x)[0];
+    return _mm512_reduce_add_pd(x);
 }
 #endif
 
