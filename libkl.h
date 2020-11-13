@@ -40,11 +40,17 @@ LIBKL_API double sis_reduce_aligned_d(const double *const __restrict__ lhs, cons
 LIBKL_API double sis_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi);
 LIBKL_API double sis_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhi, double rhi);
 LIBKL_API double sis_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi);
-// Symmetrized Itakura-Saito distance
+// Bhattacharyya Distance
+// Computes BS = sum(sqrt(x) * sqrt(y)), which can be converted into Bhattacharyya metric [sqrt(1 - BS)] or distance [-log(BS)]
 LIBKL_API double bhattd_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhmul, double rhmul, double lhi, double rhi);
 LIBKL_API double bhattd_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhmul, float rhmul, float lhi, float rhi);
 LIBKL_API double bhattd_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhmul, double rhmul, double lhi, double rhi);
 LIBKL_API double bhattd_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhmul, float rhmul, float lhi, float rhi);
+// Hellinger Distance
+LIBKL_API double helld_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhmul, double rhmul, double lhi, double rhi);
+LIBKL_API double helld_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhmul, float rhmul, float lhi, float rhi);
+LIBKL_API double helld_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhmul, double rhmul, double lhi, double rhi);
+LIBKL_API double helld_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhmul, float rhmul, float lhi, float rhi);
 
 #ifdef __cplusplus
 } // extern "C" 
@@ -122,6 +128,18 @@ static inline double bhattd_reduce_unaligned(const double *const __restrict__ lh
 }
 static inline double bhattd_reduce_unaligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhmul, float rhmul, float lhinc, float rhinc) {
     return bhattd_reduce_unaligned_f(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+}
+static inline double helld_reduce_aligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n,  double lhmul, double rhmul, double lhinc, double rhinc) {
+    return helld_reduce_aligned_d(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+}
+static inline double helld_reduce_aligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhmul, float rhmul, float lhinc, float rhinc) {
+    return helld_reduce_aligned_f(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+}
+static inline double helld_reduce_unaligned(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lhmul, double rhmul,  double lhinc, double rhinc) {
+    return helld_reduce_unaligned_d(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+}
+static inline double helld_reduce_unaligned(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhmul, float rhmul, float lhinc, float rhinc) {
+    return helld_reduce_unaligned_f(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
 }
 static inline double llr_reduce(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lambda, float lhinc, float rhinc) {
 #if __AVX512F__
@@ -290,6 +308,34 @@ static inline double bhattd_reduce(const double *const __restrict__ lhs, const d
         return bhattd_reduce_aligned_d(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
     else
         return bhattd_reduce_unaligned_d(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+}
+static inline double helld_reduce(const float *const __restrict__ lhs, const float *const __restrict__ rhs, size_t n, float lhmul, float rhmul, float lhinc, float rhinc) {
+#if __AVX512F__
+    if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
+#elif __AVX2__
+    if((uint64_t)lhs % 32 == 0 && (uint64_t)rhs % 32 == 0)
+#elif __SSE2__
+    if((uint64_t)lhs % 16 == 0 && (uint64_t)rhs % 16 == 0)
+#else
+    if(1)
+#endif
+        return helld_reduce_aligned_f(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+    else
+        return helld_reduce_unaligned_f(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+}
+static inline double helld_reduce(const double *const __restrict__ lhs, const double *const __restrict__ rhs, size_t n, double lhmul, double rhmul, double lhinc, double rhinc) {
+#if __AVX512F__
+    if((uint64_t)lhs % 64 == 0 && (uint64_t)rhs % 64 == 0)
+#elif __AVX2__
+    if((uint64_t)lhs % 32 == 0 && (uint64_t)rhs % 32 == 0)
+#elif __SSE2__
+    if((uint64_t)lhs % 16 == 0 && (uint64_t)rhs % 16 == 0)
+#else
+    if(1)
+#endif
+        return helld_reduce_aligned_d(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
+    else
+        return helld_reduce_unaligned_d(lhs, rhs, n, lhmul, rhmul, lhinc, rhinc);
 }
 
 } // namespace libkl

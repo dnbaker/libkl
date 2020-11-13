@@ -1847,6 +1847,28 @@ LIBKL_API double jsd_reduce_unaligned_d(const double *const __restrict__ lhs, co
     return ret;
 }
 
+#define __HELLDIST_FUNC(T, VecT, LoadFnc, AddFnc, Set1Fnc, SqrtFnc, SetZeroFnc, Name, ReduceFnc, MulFnc, SubFnc, FMAFnc) \
+LIBKL_API double Name(const T *const __restrict__ lhs, const T *const __restrict__ rhs, const size_t n, T lhmul, T rhmul, T lhi, T rhi) {\
+    double ret = 0.;\
+    const size_t nper = sizeof(VecT) / sizeof(T);\
+    const size_t nsimd = n / nper;\
+    VecT sum = SetZeroFnc();\
+    size_t i;\
+    _Pragma("GCC unroll 4")\
+    for(i = 0; i < nsimd; ++i) {\
+        VecT lhv = AddFnc(MulFnc(LoadFnc(lhs + (i * nper)), Set1Fnc(lhmul)), Set1Fnc(lhi));\
+        VecT rhv = AddFnc(MulFnc(LoadFnc(rhs + (i * nper)), Set1Fnc(rhmul)), Set1Fnc(rhi));\
+        VecT diffv = SubFnc(lhv, rhv);\
+        sum = FMAFnc(diffv, diffv, sum);\
+    }\
+    ret = ReduceFnc(sum);\
+    for(i *= nper;i < n; ++i) {\
+        double v = sqrt(lhs[i] * lhmul + lhi) - sqrt(rhs[i] * rhmul + rhi);\
+        ret += v * v;\
+    }\
+    return ret;\
+}
+
 #define __D_BSIM_FUNC(T, VecT, LoadFnc, AddFnc, Set1Fnc, SqrtFnc, SetZeroFnc, Name, ReduceFnc, MulFnc) \
 LIBKL_API double Name(const T *const __restrict__ lhs, const T *const __restrict__ rhs, const size_t n, T lhmul, T rhmul, T lhi, T rhi) {\
     double ret = 0.;\
@@ -1869,23 +1891,50 @@ LIBKL_API double Name(const T *const __restrict__ lhs, const T *const __restrict
     return ret;\
 }
 
+#ifndef __FMA__
+static inline __attribute__((always_inline)) __m256 _mm256_fmadd_ps(__m256 a, __m256 b, __m256 c) {
+    return _mm256_add_ps(c, _mm256_mul_ps(a, b));
+}
+static inline __attribute__((always_inline)) __m256d _mm256_fmadd_pd(__m256d a, __m256d b, __m256d c) {
+    return _mm256_add_pd(c, _mm256_mul_pd(a, b));
+}
+static inline __attribute__((always_inline)) __m128 _mm_fmadd_ps(__m128 a, __m128 b, __m128 c) {
+    return _mm_add_ps(c, _mm_mul_ps(a, b));
+}
+static inline __attribute__((always_inline)) __m128d _mm_fmadd_pd(__m128d a, __m128d b, __m128d c) {
+    return _mm_add_pd(c, _mm_mul_pd(a, b));
+}
+#endif
+
 #ifdef __AVX512F__
 __D_BSIM_FUNC(double, __m512d, _mm512_loadu_pd, _mm512_add_pd, _mm512_set1_pd, Sleef_sqrtd8_u35, _mm512_setzero_pd, dbhattd_reduce_unaligned_avx512, _mm512_reduce_add_pdd, _mm512_mul_pd)
 __D_BSIM_FUNC(double, __m512d, _mm512_load_pd, _mm512_add_pd, _mm512_set1_pd, Sleef_sqrtd8_u35, _mm512_setzero_pd, dbhattd_reduce_aligned_avx512, _mm512_reduce_add_pdd, _mm512_mul_pd)
 __D_BSIM_FUNC(float, __m512, _mm512_loadu_ps, _mm512_add_ps, _mm512_set1_ps, Sleef_sqrtf16_u35, _mm512_setzero_ps, fbhattd_reduce_unaligned_avx512, _mm512_reduce_add_psf, _mm512_mul_ps)
 __D_BSIM_FUNC(float, __m512, _mm512_load_ps, _mm512_add_ps, _mm512_set1_ps, Sleef_sqrtf16_u35, _mm512_setzero_ps, fbhattd_reduce_aligned_avx512, _mm512_reduce_add_psf, _mm512_mul_ps)
+__HELLDIST_FUNC(double, __m512d, _mm512_loadu_pd, _mm512_add_pd, _mm512_set1_pd, Sleef_sqrtd8_u35, _mm512_setzero_pd, dhelld_reduce_unaligned_avx512, _mm512_reduce_add_pdd, _mm512_mul_pd, _mm512_sub_pd, _mm512_fmadd_pd)
+__HELLDIST_FUNC(double, __m512d, _mm512_load_pd, _mm512_add_pd, _mm512_set1_pd, Sleef_sqrtd8_u35, _mm512_setzero_pd, dhelld_reduce_aligned_avx512, _mm512_reduce_add_pdd, _mm512_mul_pd, _mm512_sub_pd, _mm512_fmadd_pd)
+__HELLDIST_FUNC(float, __m512, _mm512_loadu_ps, _mm512_add_ps, _mm512_set1_ps, Sleef_sqrtf16_u35, _mm512_setzero_ps, fhelld_reduce_unaligned_avx512, _mm512_reduce_add_psf, _mm512_mul_ps, _mm512_sub_ps, _mm512_fmadd_ps)
+__HELLDIST_FUNC(float, __m512, _mm512_load_ps, _mm512_add_ps, _mm512_set1_ps, Sleef_sqrtf16_u35, _mm512_setzero_ps, fhelld_reduce_aligned_avx512, _mm512_reduce_add_psf, _mm512_mul_ps, _mm512_sub_ps, _mm512_fmadd_ps)
 #endif
 #ifdef __AVX2__
 __D_BSIM_FUNC(double, __m256d, _mm256_loadu_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dbhattd_reduce_unaligned_avx256, hsum_double_avx, _mm256_mul_pd)
 __D_BSIM_FUNC(double, __m256d, _mm256_load_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dbhattd_reduce_aligned_avx256, hsum_double_avx, _mm256_mul_pd)
 __D_BSIM_FUNC(float, __m256, _mm256_loadu_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, fbhattd_reduce_unaligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps)
 __D_BSIM_FUNC(float, __m256, _mm256_load_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, fbhattd_reduce_aligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps)
+__HELLDIST_FUNC(double, __m256d, _mm256_loadu_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd8_u35, _mm256_setzero_pd, dhelld_reduce_unaligned_avx256, hsum_double_avx, _mm256_mul_pd, _mm256_sub_pd, _mm256_fmadd_pd)
+__HELLDIST_FUNC(double, __m256d, _mm256_load_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd8_u35, _mm256_setzero_pd, dhelld_reduce_aligned_avx256, hsum_double_avx, _mm256_mul_pd, _mm256_sub_pd, _mm256_fmadd_pd)
+__HELLDIST_FUNC(float, __m256, _mm256_loadu_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf16_u35, _mm256_setzero_ps, fhelld_reduce_unaligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps, _mm256_sub_ps, _mm256_fmadd_ps)
+__HELLDIST_FUNC(float, __m256, _mm256_load_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf16_u35, _mm256_setzero_ps, fhelld_reduce_aligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps, _mm256_sub_ps, _mm256_fmadd_ps)
 #endif
 #ifdef __SSE2__
 __D_BSIM_FUNC(double, __m128d, _mm_loadu_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dbhattd_reduce_unaligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd)
 __D_BSIM_FUNC(double, __m128d, _mm_load_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dbhattd_reduce_aligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd)
 __D_BSIM_FUNC(float, __m128, _mm_loadu_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, fbhattd_reduce_unaligned_sse2, _mm_reduce_add_psf, _mm_mul_ps)
 __D_BSIM_FUNC(float, __m128, _mm_load_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, fbhattd_reduce_aligned_sse2, _mm_reduce_add_psf, _mm_mul_ps)
+__HELLDIST_FUNC(double, __m128d, _mm_loadu_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd8_u35, _mm_setzero_pd, dhelld_reduce_unaligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd, _mm_sub_pd, _mm_fmadd_pd)
+__HELLDIST_FUNC(double, __m128d, _mm_load_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd8_u35, _mm_setzero_pd, dhelld_reduce_aligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd, _mm_sub_pd, _mm_fmadd_pd)
+__HELLDIST_FUNC(float, __m128, _mm_loadu_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf16_u35, _mm_setzero_ps, fhelld_reduce_unaligned_sse2, _mm_reduce_add_psf, _mm_mul_ps, _mm_sub_ps, _mm_fmadd_ps)
+__HELLDIST_FUNC(float, __m128, _mm_load_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf16_u35, _mm_setzero_ps, fhelld_reduce_aligned_sse2, _mm_reduce_add_psf, _mm_mul_ps, _mm_sub_ps, _mm_fmadd_ps)
 #endif
 
 #undef __D_BSIM_FUNC
@@ -1943,6 +1992,71 @@ LIBKL_API double bhattd_reduce_unaligned_f(const float *const __restrict__ lhs, 
     return ret;
 #endif
 }
+LIBKL_API double helld_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhmul, double rhmul, double lhi, double rhi) {
+#if __AVX512F__
+    return dhelld_reduce_aligned_avx512(lhs, rhs, n, lhmul, rhmul, lhi, rhi);
+#elif __AVX2__
+    return dhelld_reduce_aligned_avx256(lhs, rhs, n, lhmul, rhmul, lhi, rhi);
+#elif __SSE2__
+    return dhelld_reduce_aligned_sse2(lhs, rhs, n, lhmul, rhmul, lhi, rhi);
+#else
+    double ret = 0.;
+    for(size_t i = 0; i < n; ++i) {
+        double v = (lhs[i] * lhmul + lhi) - (rhs[i] * rhmul + rhi);
+        ret += v * v;
+    }
+    return ret;
+#endif
+}
+LIBKL_API double helld_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhmul, float rhmul, float lhi, float rhi) {
+#if __AVX512F__
+    return fhelld_reduce_aligned_avx512(lhs, rhs, n, lhmul, rhmul, lhi, rhi);
+#elif __AVX2__
+    return fhelld_reduce_aligned_avx256(lhs, rhs, n, lhmul, rhmul, lhi, rhi);
+#elif __SSE2__
+    return fhelld_reduce_aligned_sse2(lhs, rhs, n, lhmul, rhmul, lhi, rhi);
+#else
+    double ret = 0.;
+    for(size_t i = 0; i < n; ++i) {
+        double v = (lhs[i] * lhmul + lhi) - (rhs[i] * rhmul + rhi);
+        ret += v * v;
+    }
+    return ret;
+#endif
+}
+LIBKL_API double helld_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n, double lhmul, double rhmul, double lhi, double rhi) {
+#if __AVX512F__
+    return dhelld_reduce_unaligned_avx512(lhs, rhs, n, lhmul, rhmul, lhi, rhi);
+#elif __AVX2__
+    return dhelld_reduce_unaligned_avx256(lhs, rhs, n, lhmul, rhmul, lhi, rhi);
+#elif __SSE2__
+    return dhelld_reduce_unaligned_sse2(lhs, rhs, n, lhmul, rhmul, lhi, rhi);
+#else
+    double ret = 0.;
+    for(size_t i = 0; i < n; ++i) {
+        double v = (lhs[i] * lhmul + lhi) - (rhs[i] * rhmul + rhi);
+        ret += v * v;
+    }
+    return ret;
+#endif
+}
+LIBKL_API double helld_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhmul, float rhmul, float lhi, float rhi) {
+#if __AVX512F__
+    return fhelld_reduce_unaligned_avx512(lhs, rhs, n, lhmul, rhmul, lhi, rhi);
+#elif __AVX2__
+    return fhelld_reduce_unaligned_avx256(lhs, rhs, n, lhmul, rhmul, lhi, rhi);
+#elif __SSE2__
+    return fhelld_reduce_unaligned_sse2(lhs, rhs, n, lhmul, rhmul, lhi, rhi);
+#else
+    double ret = 0.;
+    for(size_t i = 0; i < n; ++i) {
+        double v = (lhs[i] * lhmul + lhi) - (rhs[i] * rhmul + rhi);
+        ret += v * v;
+    }
+    return ret;
+#endif
+}
+
 
 #ifdef LIBKL_HIGH_PRECISION
 #undef Sleef_logd2_u35
