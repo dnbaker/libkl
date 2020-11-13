@@ -1949,14 +1949,6 @@ static inline __attribute__((always_inline)) __m128d _mm_fmadd_pd(__m128d a, __m
 }
 #endif
 
-#if __AVX512F__
-static inline __attribute__((always_inline)) __m512 _mm512_abs_ps(__m512 a) {
-    return _mm512_max_ps(a, -a);
-}
-static inline __attribute__((always_inline)) __m512d _mm512_abs_pd(__m512d a) {
-    return _mm512_max_pd(a, -a);
-}
-#endif
 #if __AVX2__
 static inline __attribute__((always_inline)) __m256 _mm256_abs_ps(__m256 a) {
     return _mm256_max_ps(a, -a);
