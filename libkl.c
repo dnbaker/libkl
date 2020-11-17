@@ -960,8 +960,8 @@ LIBKL_API double is_reduce_aligned_f(const float *const __restrict__ lhs, const 
 #ifndef NDEBUG
     double oret = 0.;
     for(size_t j = 0; j < n; ++j) {
-        float lhv = lhs[i] + lhi;
-        float rhv = rhs[i] + rhi;
+        float lhv = lhs[j] + lhi;
+        float rhv = rhs[j] + rhi;
         float div = lhv / rhv;
         oret += div - logf(div);
     }
