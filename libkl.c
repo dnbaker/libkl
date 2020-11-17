@@ -361,7 +361,7 @@ LIBKL_API double kl_reduce_unaligned_d(const double *const __restrict__ lhs, con
         float lhv = lhs[i] + lhi, rhv = rhs[i] + rhi;
         ret += lhv * logf(lhv / rhv);
     }
-#ifndef NDEBUG
+#if 0
     double oret = 0.;
     for(size_t j = 0; j < n; ++j) {
         float lhv = lhs[i] + lhi, rhv = rhs[i] + rhi;
@@ -426,7 +426,7 @@ LIBKL_API double kl_reduce_unaligned_f(const float *const __restrict__ lhs, cons
         float rhv = rhs[i] + rhi;
         ret += lhv * logf(lhv / rhv);
     }
-#ifndef NDEBUG
+#if 0
     double oret = 0.;
     for(size_t j = 0; j < n; ++j) {
         float lhv = lhs[i] + lhi;
@@ -772,7 +772,7 @@ LIBKL_API double is_reduce_aligned_d(const double *const __restrict__ lhs, const
         double div = lhv / rhv;
         ret += div - log(div);
     }
-#ifndef NDEBUG
+#if 0
     double oret = 0.;
     for(size_t j = 0; j < n; ++j) {
         double lhv = lhs[j] + lhi;
@@ -864,16 +864,6 @@ LIBKL_API double is_reduce_unaligned_d(const double *const __restrict__ lhs, con
         double div = lhv / rhv;
         ret += div - logf(div);
     }
-#ifndef NDEBUG
-    double oret = 0.;
-    for(size_t j = 0; j < n; ++j) {
-        double lhv = lhs[i] + lhi;
-        double rhv = rhs[i] + rhi;
-        double div = lhv / rhv;
-        oret += div - log(div);
-    }
-    assert(fabs(oret - ret) < 1e-5);
-#endif
     return ret;
 }
 
@@ -957,7 +947,7 @@ LIBKL_API double is_reduce_aligned_f(const float *const __restrict__ lhs, const 
         float div = lhv / rhv;
         ret += div - logf(div);
     }
-#ifndef NDEBUG
+#if 0
     double oret = 0.;
     for(size_t j = 0; j < n; ++j) {
         float lhv = lhs[j] + lhi;
@@ -1049,11 +1039,11 @@ LIBKL_API double is_reduce_unaligned_f(const float *const __restrict__ lhs, cons
         float div = lhv / rhv;
         ret += div - logf(div);
     }
-#ifndef NDEBUG
+#if 0
     double oret = 0.;
     for(size_t j = 0; j < n; ++j) {
-        float lhv = lhs[i] + lhi;
-        float rhv = rhs[i] + rhi;
+        float lhv = lhs[j] + lhi;
+        float rhv = rhs[j] + rhi;
         float div = lhv / rhv;
         oret += div - logf(div);
     }
