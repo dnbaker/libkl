@@ -10,7 +10,7 @@ LIB+=-L$(SLEEF_DIR)/lib -lsleef
 endif
 WARNINGS+=-Wall -Wextra -Wpointer-arith -Wformat -Wunused-variable -Wno-attributes -Wno-ignored-qualifiers -Wno-unused-function -Wdeprecated -Wno-deprecated-declarations
 
-EXTRA+=-fPIC -O3 -march=native -flto
+EXTRA+=-fPIC -O3 -march=native
 ND=-DNDEBUG
 
 all: libkl.so libkl.a libkl.o

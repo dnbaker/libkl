@@ -643,7 +643,8 @@ LIBKL_API double sis_reduce_aligned_d(const double *const __restrict__ lhs, cons
         __m512d rh = _mm512_add_pd(_mm512_load_pd(rhs + (i * nper)), _mm512_set1_pd(rhi));
         __m512d divf = _mm512_div_pd(lh, rh);
         __m512d divr = _mm512_div_pd(rh, lh);
-        sum = _mm512_fmadd_pd(_mm512_add_pd(_mm512_add_pd(divf, divr), _mm512_set1_pd(2.)), _mm512_set1_pd(0x1p-2), sum);
+        __m512d tmp = Sleef_logd8_u35(_mm512_mul_pd(_mm512_add_pd(_mm512_add_pd(divf, divr), _mm512_set1_pd(2.)), _mm512_set1_pd(0x1p-2)));
+        sum = _mm512_add_pd(tmp, sum);
         ++i;
     }
     ret += .5 * _mm512_reduce_add_pd(sum);
@@ -654,12 +655,14 @@ LIBKL_API double sis_reduce_aligned_d(const double *const __restrict__ lhs, cons
     const size_t nsimd = n / nper;
 
     __m256d sum = _mm256_set1_pd(0.);
+    #pragma GCC unroll 4
     for(; i < nsimd; ++i) {
         __m256d lh = _mm256_add_pd(_mm256_load_pd(lhs + (i * nper)), _mm256_set1_pd(lhi));
         __m256d rh = _mm256_add_pd(_mm256_load_pd(rhs + (i * nper)), _mm256_set1_pd(rhi));
         __m256d divf = _mm256_div_pd(lh, rh);
         __m256d divr = _mm256_div_pd(rh, lh);
-        sum = _mm256_fmadd_pd(_mm256_add_pd(_mm256_add_pd(divf, divr), _mm256_set1_pd(2.)), _mm256_set1_pd(0x1p-2), sum);
+        __m256d tmp = Sleef_logd4_u35(_mm256_mul_pd(_mm256_add_pd(_mm256_add_pd(divf, divr), _mm256_set1_pd(2.)), _mm256_set1_pd(0x1p-2)));
+        sum = _mm256_add_pd(tmp, sum);
     }
     ret += .5 * hsum_double_avx(sum);
     i *= nper;
