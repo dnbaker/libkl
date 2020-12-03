@@ -106,20 +106,12 @@ static inline __attribute__((always_inline)) double _mm_reduce_add_psf(__m128 x)
 
 #ifndef __FMA__
 #ifdef __AVX2__
-static inline __attribute__((always_inline)) __m256 _mm256_fmadd_ps(__m256 a, __m256 b, __m256 c) {
-    return _mm256_add_ps(c, _mm256_mul_ps(a, b));
-}
-static inline __attribute__((always_inline)) __m256d _mm256_fmadd_pd(__m256d a, __m256d b, __m256d c) {
-    return _mm256_add_pd(c, _mm256_mul_pd(a, b));
-}
+#define _mm256_fmadd_ps(a, b, c) (_mm256_add_ps(c, _mm256_mul_ps(a, b)))
+#define _mm256_fmadd_pd(a, b, c) (_mm256_add_pd(c, _mm256_mul_pd(a, b)))
 #endif
 #ifdef __SSE2__
-static inline __attribute__((always_inline)) __m128 _mm_fmadd_ps(__m128 a, __m128 b, __m128 c) {
-    return _mm_add_ps(c, _mm_mul_ps(a, b));
-}
-static inline __attribute__((always_inline)) __m128d _mm_fmadd_pd(__m128d a, __m128d b, __m128d c) {
-    return _mm_add_pd(c, _mm_mul_pd(a, b));
-}
+#define _mm_fmadd_ps(a, b, c) (_mm_add_ps(c, _mm_mul_ps(a, b)))
+#define _mm_fmadd_pd(a, b, c) (_mm_add_pd(c, _mm_mul_pd(a, b)))
 #endif
 #endif
 
@@ -1042,16 +1034,6 @@ LIBKL_API double is_reduce_unaligned_f(const float *const __restrict__ lhs, cons
         float div = lhv / rhv;
         ret += div - logf(div);
     }
-#if 0
-    double oret = 0.;
-    for(size_t j = 0; j < n; ++j) {
-        float lhv = lhs[j] + lhi;
-        float rhv = rhs[j] + rhi;
-        float div = lhv / rhv;
-        oret += div - logf(div);
-    }
-    assert(fabs(oret - ret) < 1e-5 || !fprintf(stderr, "ret: %g. oret: %g\n", ret, oret));
-#endif
     return ret;
 }
 
@@ -1806,8 +1788,7 @@ LIBKL_API double Name(const T *const __restrict__ lhs, const T *const __restrict
     }\
     ret = ReduceFnc(sum);\
     for(i *= nper;i < n; ++i) {\
-        double v = fabs((lhs[i] * lhmul + lhi) - (rhs[i] * rhmul + rhi));\
-        ret += v;\
+        ret += fabs((lhs[i] * lhmul + lhi) - (rhs[i] * rhmul + rhi));\
     }\
     return ret * .5;\
 }
