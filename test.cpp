@@ -63,7 +63,7 @@ int main_fn() {
     v12 = kl_reduce_aligned(v1, v2, nelem, lhi, rhi);
     assert(v11 == 0. || !std::fprintf(stderr, "v1 and v1 -> %g\n", v11));
     assert(v22 == 0. || !std::fprintf(stderr, "v2 and v2 -> %g\n", v22));
-    assert(v12 == 0.);
+    assert(v12 == 0. || !std::fprintf(stderr, "v1 and v2 -> %0.20g\n", v12));
     T s = 0.;
     for(size_t i = 0; i < nelem; ++i) {
         auto lhv = v1[i] + lhi, rhv = v2[i] + rhi;

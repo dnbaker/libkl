@@ -211,6 +211,7 @@ LIBKL_API double kl_reduce_aligned_d(const double *const __restrict__ lhs, const
     return ret;
 }
 
+
 LIBKL_API double kl_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n, float lhi, float rhi) {
     double ret = 0.;
     size_t i = 0;
@@ -218,29 +219,62 @@ LIBKL_API double kl_reduce_aligned_f(const float *const __restrict__ lhs, const 
     assert(((uint64_t)lhs) % 64 == 0);
     const size_t nper = sizeof(__m512) / sizeof(float);
     const size_t nsimd = n / nper;
+    const size_t nsimd4 = (nsimd4 / 4) * 4;
+    for(i = 0; i < nsimd4; i += 4) {
+        // Perform 4 vector blocks
+        __m512 lh0 = _mm512_add_ps(_mm512_load_ps(lhs + (i * nper)), _mm512_set1_ps(lhi));
+        __m512 logd0 = Sleef_logf16_u35(_mm512_div_ps(lh0, _mm512_add_ps(_mm512_load_ps(rhs + (i * nper)), _mm512_set1_ps(rhi))));
+        __m512 lh1 = _mm512_add_ps(_mm512_load_ps(lhs + ((i + 1) * nper)), _mm512_set1_ps(lhi));
+        __m512 logd1 = Sleef_logf16_u35(_mm512_div_ps(lh1, _mm512_add_ps(_mm512_load_ps(rhs + ((i + 1) * nper)), _mm512_set1_ps(rhi))));
+        __m512 lh2 = _mm512_add_ps(_mm512_load_ps(lhs + ((i + 2) * nper)), _mm512_set1_ps(lhi));
+        __m512 logd2 = Sleef_logf16_u35(_mm512_div_ps(lh2, _mm512_add_ps(_mm512_load_ps(rhs + ((i + 2) * nper)), _mm512_set1_ps(rhi))));
+        __m512 lh3 = _mm512_add_ps(_mm512_load_ps(lhs + ((i + 3) * nper)), _mm512_set1_ps(lhi));
+        __m512 logd3 = Sleef_logf16_u35(_mm512_div_ps(lh3, _mm512_add_ps(_mm512_load_ps(rhs + ((i + 3) * nper)), _mm512_set1_ps(rhi))));
+        // Accumulate in each pair, then convert to doubles for accumulation
+        __m512 s01 = _mm512_fmadd_ps(lh1, logd1, _mm512_mul_ps(lh0, logd0));
+        __m512 s23 = _mm512_fmadd_ps(lh2, logd2, _mm512_mul_ps(lh3, logd3));
+#ifndef __AVX512DQ__
+#  define __get_high_reg(x) _mm256_castpd_ps(_mm512_extractf64x4_pd(_mm512_castps_pd(x), 1))
+#else
+#  define __get_high_reg(x) _mm512_extractf32x8_ps(x, 1)
+#endif
+        __m512d s01d = _mm512_add_pd(_mm512_cvtps_pd(_mm512_castps512_ps256(s01)), _mm512_cvtps_pd(__get_high_reg(s01)));
+        __m512d s23d = _mm512_add_pd(_mm512_cvtps_pd(_mm512_castps512_ps256(s23)), _mm512_cvtps_pd(__get_high_reg(s23)));
+#undef __get_high_reg
+        ret += _mm512_reduce_add_pd(_mm512_add_pd(s01d, s23d));
+    }
     __m512 sum = _mm512_setzero_ps();
-    #pragma GCC unroll 4
     for(; i < nsimd; ++i) {
         __m512 lh = _mm512_add_ps(_mm512_load_ps(lhs + (i * nper)), _mm512_set1_ps(lhi));
         __m512 rh = _mm512_add_ps(_mm512_load_ps(rhs + (i * nper)), _mm512_set1_ps(rhi));
-        __m512 div = _mm512_div_ps(lh, rh);
-        __m512 logv = Sleef_logf16_u35(div);
+        __m512 logv = Sleef_logf16_u35(_mm512_div_ps(lh, rh));
         sum = _mm512_fmadd_ps(lh, logv, sum);
     }
-    ret = _mm512_reduce_add_ps(sum);
+    ret += _mm512_reduce_add_ps(sum);
     i *= nper;
 #elif __AVX2__
     assert(((uint64_t)lhs) % 32 == 0);
     const size_t nper = sizeof(__m256) / sizeof(float);
     const size_t nsimd = n / nper;
 
-    __m256 sum = _mm256_setzero_ps();
-    #pragma GCC unroll 4
-    for(; i < nsimd; ++i) {
-        __m256 lh = _mm256_add_ps(_mm256_load_ps(lhs + (i * nper)), _mm256_set1_ps(lhi));
-        __m256 rh = _mm256_add_ps(_mm256_load_ps(rhs + (i * nper)), _mm256_set1_ps(rhi));
-        sum = _mm256_fmadd_ps(lh, Sleef_logf8_u35(_mm256_div_ps(lh, rh)), sum);
+    const size_t nsimd4 = (nsimd / 4) * 4;
+    for(i = 0; i < nsimd4; i += 4) {
+        fprintf(stderr, "ret: %g, with i = %zu\n", ret, i);
+#define __PI(x) __m256 lh##x = _mm256_add_ps(_mm256_load_ps(lhs + ((i + x) * nper)), _mm256_set1_ps(lhi)); \
+               __m256 logd##x = Sleef_logf8_u35(_mm256_div_ps(lh0, _mm256_add_ps(_mm256_load_ps(rhs + ((i + x) * nper)), _mm256_set1_ps(rhi))));
+        __PI(0) __PI(1) __PI(2) __PI(3)
+        __m256 s01 = _mm256_fmadd_ps(lh1, logd1, _mm256_mul_ps(lh0, logd0));
+        __m256 s23 = _mm256_fmadd_ps(lh2, logd2, _mm256_mul_ps(lh3, logd3));
+        __m256d s01d = _mm256_add_pd(_mm256_cvtps_pd(_mm256_castps256_ps128(s01)), _mm256_cvtps_pd(_mm256_extractf128_ps(s01, 1)));
+        __m256d s23d = _mm256_add_pd(_mm256_cvtps_pd(_mm256_castps256_ps128(s23)), _mm256_cvtps_pd(_mm256_extractf128_ps(s23, 1)));
+        ret += hsum_double_avx(_mm256_add_pd(s01d, s23d));
     }
+    __m256 sum = _mm256_setzero_ps();
+    for(; i < nsimd; ++i) {
+        __PI(0)
+        sum = _mm256_fmadd_ps(lh0, logd0, sum);
+    }
+#undef __PI
     ret += broadcast_reduce_add_si256_ps(sum)[0];
     i *= nper;
 #elif __SSE2__
