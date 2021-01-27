@@ -174,8 +174,10 @@ LIBKL_API double kl_reduce_aligned_d(const double *const __restrict__ lhs, const
     for(; i < nsimd; ++i) {
         __m256d lh = _mm256_add_pd(_mm256_load_pd(lhs + ((i) * nper)), lhv),
                 rh = _mm256_add_pd(_mm256_load_pd(rhs + ((i) * nper)), rhv);
-        sum = _mm256_add_pd(sum,
-            _mm256_mul_pd(lh, Sleef_logd4_u35(_mm256_div_pd(lh, rh))), sum);
+        sum = _mm256_add_pd(
+            sum,
+            _mm256_mul_pd(lh, Sleef_logd4_u35(_mm256_div_pd(lh, rh)))
+        );
     }
     ret = hsum_double_avx(sum);
     i *= nper;
