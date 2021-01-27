@@ -102,6 +102,13 @@ int main_fn() {
     fprintf(stderr, "manual via simd: %g. via numpy: %g\n", v12, 0.8102686372626047);
     assert(std::abs(v12) - 0.8102686372626047 < 1e-6);
 
+    std::fill(v1, v1 + nelem, 2.);
+    std::fill(v2, v2 + nelem, 0.);
+    for(size_t subnelem = 1; subnelem < nelem; subnelem = std::min(nelem, subnelem + 3)) {
+        double sl2r = sqrl2_reduce_aligned(v1, v2, subnelem, 1., 1., 0., 0.);
+        assert(std::abs(sl2r - 4. * subnelem < 1e-6));
+    }
+
 
     //std::fprintf(stderr, "Manual value: %g. Value via llr_reduce_aligned: %g\n", s, v12);
     fprintf(stderr, "[%s] Finished \n", __PRETTY_FUNCTION__);
