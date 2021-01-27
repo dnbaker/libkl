@@ -259,7 +259,6 @@ LIBKL_API double kl_reduce_aligned_f(const float *const __restrict__ lhs, const 
 
     const size_t nsimd4 = (nsimd / 4) * 4;
     for(i = 0; i < nsimd4; i += 4) {
-        fprintf(stderr, "ret: %g, with i = %zu\n", ret, i);
 #define __PI(x) __m256 lh##x = _mm256_add_ps(_mm256_load_ps(lhs + ((i + x) * nper)), _mm256_set1_ps(lhi)); \
                __m256 logd##x = Sleef_logf8_u35(_mm256_div_ps(lh0, _mm256_add_ps(_mm256_load_ps(rhs + ((i + x) * nper)), _mm256_set1_ps(rhi))));
         __PI(0) __PI(1) __PI(2) __PI(3)
