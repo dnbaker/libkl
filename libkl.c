@@ -1777,6 +1777,29 @@ LIBKL_API double jsd_reduce_unaligned_d(const double *const __restrict__ lhs, co
 #endif
     return ret;
 }
+
+#define __SQRL2_FUNC_NONORM(T, VecT, LoadFnc, AddFnc, Set1Fnc, SqrtFnc, SetZeroFnc, Name, ReduceFnc, MulFnc, SubFnc, FMAFnc) \
+LIBKL_API double Name(const T *const __restrict__ lhs, const T *const __restrict__ rhs, const size_t n) {\
+    double ret = 0.;\
+    const size_t nper = sizeof(VecT) / sizeof(T);\
+    const size_t nsimd = n / nper;\
+    VecT sum = SetZeroFnc();\
+    size_t i;\
+    _Pragma("GCC unroll 8")\
+    for(i = 0; i < nsimd; ++i) {\
+        VecT lhv = LoadFnc(lhs + (i * nper));\
+        VecT rhv = LoadFnc(rhs + (i * nper));\
+        VecT diffv = SubFnc(lhv, rhv);\
+        sum = FMAFnc(diffv, diffv, sum);\
+    }\
+    ret = ReduceFnc(sum);\
+    for(i *= nper;i < n; ++i) {\
+        double v = (lhs[i] - rhs[i]);\
+        ret += v * v;\
+    }\
+    return ret;\
+}
+
 #define __SQRL2_FUNC(T, VecT, LoadFnc, AddFnc, Set1Fnc, SqrtFnc, SetZeroFnc, Name, ReduceFnc, MulFnc, SubFnc, FMAFnc) \
 LIBKL_API double Name(const T *const __restrict__ lhs, const T *const __restrict__ rhs, const size_t n, T lhmul, T rhmul, T lhi, T rhi) {\
     double ret = 0.;\
@@ -1878,6 +1901,10 @@ __SQRL2_FUNC(double, __m512d, _mm512_loadu_pd, _mm512_add_pd, _mm512_set1_pd, Sl
 __SQRL2_FUNC(double, __m512d, _mm512_load_pd, _mm512_add_pd, _mm512_set1_pd, Sleef_sqrtd8_u35, _mm512_setzero_pd, dsqrl2_reduce_aligned_avx512, _mm512_reduce_add_pdd, _mm512_mul_pd, _mm512_sub_pd, _mm512_fmadd_pd)
 __SQRL2_FUNC(float, __m512, _mm512_loadu_ps, _mm512_add_ps, _mm512_set1_ps, Sleef_sqrtf16_u35, _mm512_setzero_ps, fsqrl2_reduce_unaligned_avx512, _mm512_reduce_add_psf, _mm512_mul_ps, _mm512_sub_ps, _mm512_fmadd_ps)
 __SQRL2_FUNC(float, __m512, _mm512_load_ps, _mm512_add_ps, _mm512_set1_ps, Sleef_sqrtf16_u35, _mm512_setzero_ps, fsqrl2_reduce_aligned_avx512, _mm512_reduce_add_psf, _mm512_mul_ps, _mm512_sub_ps, _mm512_fmadd_ps)
+__SQRL2_FUNC_NONORM(double, __m512d, _mm512_loadu_pd, _mm512_add_pd, _mm512_set1_pd, Sleef_sqrtd8_u35, _mm512_setzero_pd, dnnsqrl2_reduce_unaligned_avx512, _mm512_reduce_add_pdd, _mm512_mul_pd, _mm512_sub_pd, _mm512_fmadd_pd)
+__SQRL2_FUNC_NONORM(double, __m512d, _mm512_load_pd, _mm512_add_pd, _mm512_set1_pd, Sleef_sqrtd8_u35, _mm512_setzero_pd, dnnsqrl2_reduce_aligned_avx512, _mm512_reduce_add_pdd, _mm512_mul_pd, _mm512_sub_pd, _mm512_fmadd_pd)
+__SQRL2_FUNC_NONORM(float, __m512, _mm512_loadu_ps, _mm512_add_ps, _mm512_set1_ps, Sleef_sqrtf16_u35, _mm512_setzero_ps, fnnsqrl2_reduce_unaligned_avx512, _mm512_reduce_add_psf, _mm512_mul_ps, _mm512_sub_ps, _mm512_fmadd_ps)
+__SQRL2_FUNC_NONORM(float, __m512, _mm512_load_ps, _mm512_add_ps, _mm512_set1_ps, Sleef_sqrtf16_u35, _mm512_setzero_ps, fnnsqrl2_reduce_aligned_avx512, _mm512_reduce_add_psf, _mm512_mul_ps, _mm512_sub_ps, _mm512_fmadd_ps)
 __TVD_FUNC(double, __m512d, _mm512_loadu_pd, _mm512_add_pd, _mm512_set1_pd, Sleef_sqrtd8_u35, _mm512_setzero_pd, dtvd_reduce_unaligned_avx512, _mm512_reduce_add_pdd, _mm512_mul_pd, _mm512_sub_pd, _mm512_abs_pd, _mm512_fmadd_pd)
 __TVD_FUNC(double, __m512d, _mm512_load_pd, _mm512_add_pd, _mm512_set1_pd, Sleef_sqrtd8_u35, _mm512_setzero_pd, dtvd_reduce_aligned_avx512, _mm512_reduce_add_pdd, _mm512_mul_pd, _mm512_sub_pd, _mm512_abs_pd, _mm512_fmadd_pd)
 __TVD_FUNC(float, __m512, _mm512_loadu_ps, _mm512_add_ps, _mm512_set1_ps, Sleef_sqrtf16_u35, _mm512_setzero_ps, ftvd_reduce_unaligned_avx512, _mm512_reduce_add_psf, _mm512_mul_ps, _mm512_sub_ps, _mm512_abs_ps, _mm512_fmadd_ps)
@@ -1896,6 +1923,10 @@ __SQRL2_FUNC(double, __m256d, _mm256_loadu_pd, _mm256_add_pd, _mm256_set1_pd, Sl
 __SQRL2_FUNC(double, __m256d, _mm256_load_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dsqrl2_reduce_aligned_avx256, hsum_double_avx, _mm256_mul_pd, _mm256_sub_pd, _mm256_fmadd_pd)
 __SQRL2_FUNC(float, __m256, _mm256_loadu_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, fsqrl2_reduce_unaligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps, _mm256_sub_ps, _mm256_fmadd_ps)
 __SQRL2_FUNC(float, __m256, _mm256_load_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, fsqrl2_reduce_aligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps, _mm256_sub_ps, _mm256_fmadd_ps)
+__SQRL2_FUNC_NONORM(double, __m256d, _mm256_loadu_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dnnsqrl2_reduce_unaligned_avx256, hsum_double_avx, _mm256_mul_pd, _mm256_sub_pd, _mm256_fmadd_pd)
+__SQRL2_FUNC_NONORM(double, __m256d, _mm256_load_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dnnsqrl2_reduce_aligned_avx256, hsum_double_avx, _mm256_mul_pd, _mm256_sub_pd, _mm256_fmadd_pd)
+__SQRL2_FUNC_NONORM(float, __m256, _mm256_loadu_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, fnnsqrl2_reduce_unaligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps, _mm256_sub_ps, _mm256_fmadd_ps)
+__SQRL2_FUNC_NONORM(float, __m256, _mm256_load_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, fnnsqrl2_reduce_aligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps, _mm256_sub_ps, _mm256_fmadd_ps)
 __TVD_FUNC(double, __m256d, _mm256_loadu_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dtvd_reduce_unaligned_avx256, hsum_double_avx, _mm256_mul_pd, _mm256_sub_pd, _mm256_abs_pd, _mm256_fmadd_pd)
 __TVD_FUNC(double, __m256d, _mm256_load_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dtvd_reduce_aligned_avx256, hsum_double_avx, _mm256_mul_pd, _mm256_sub_pd, _mm256_abs_pd, _mm256_fmadd_pd)
 __TVD_FUNC(float, __m256, _mm256_loadu_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, ftvd_reduce_unaligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps, _mm256_sub_ps, _mm256_abs_ps, _mm256_fmadd_ps)
@@ -1914,6 +1945,10 @@ __SQRL2_FUNC(double, __m128d, _mm_loadu_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd
 __SQRL2_FUNC(double, __m128d, _mm_load_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dsqrl2_reduce_aligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd, _mm_sub_pd, _mm_fmadd_pd)
 __SQRL2_FUNC(float, __m128, _mm_loadu_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, fsqrl2_reduce_unaligned_sse2, _mm_reduce_add_psf, _mm_mul_ps, _mm_sub_ps, _mm_fmadd_ps)
 __SQRL2_FUNC(float, __m128, _mm_load_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, fsqrl2_reduce_aligned_sse2, _mm_reduce_add_psf, _mm_mul_ps, _mm_sub_ps, _mm_fmadd_ps)
+__SQRL2_FUNC_NONORM(double, __m128d, _mm_loadu_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dnnsqrl2_reduce_unaligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd, _mm_sub_pd, _mm_fmadd_pd)
+__SQRL2_FUNC_NONORM(double, __m128d, _mm_load_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dnnsqrl2_reduce_aligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd, _mm_sub_pd, _mm_fmadd_pd)
+__SQRL2_FUNC_NONORM(float, __m128, _mm_loadu_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, fnnsqrl2_reduce_unaligned_sse2, _mm_reduce_add_psf, _mm_mul_ps, _mm_sub_ps, _mm_fmadd_ps)
+__SQRL2_FUNC_NONORM(float, __m128, _mm_load_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, fnnsqrl2_reduce_aligned_sse2, _mm_reduce_add_psf, _mm_mul_ps, _mm_sub_ps, _mm_fmadd_ps)
 __TVD_FUNC(double, __m128d, _mm_loadu_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dtvd_reduce_unaligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd, _mm_sub_pd, _mm_abs_pd, _mm_fmadd_pd)
 __TVD_FUNC(double, __m128d, _mm_load_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dtvd_reduce_aligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd, _mm_sub_pd, _mm_abs_pd, _mm_fmadd_pd)
 __TVD_FUNC(float, __m128, _mm_loadu_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, ftvd_reduce_unaligned_sse2, _mm_reduce_add_psf, _mm_mul_ps, _mm_sub_ps, _mm_abs_ps, _mm_fmadd_ps)
@@ -2033,6 +2068,72 @@ LIBKL_API double helld_reduce_unaligned_f(const float *const __restrict__ lhs, c
     double ret = 0.;
     for(size_t i = 0; i < n; ++i) {
         double v = sqrt(lhs[i] * lhmul + lhi) - sqrt(rhs[i] * rhmul + rhi);
+        ret += v * v;
+    }
+    return ret;
+#endif
+}
+LIBKL_API double nnsqrl2_reduce_unaligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n) {
+#if __AVX512F__
+    return fnnsqrl2_reduce_unaligned_avx512(lhs, rhs, n);
+#elif __AVX2__
+    return fnnsqrl2_reduce_unaligned_avx256(lhs, rhs, n);
+#elif __SSE2__
+    return fnnsqrl2_reduce_unaligned_sse2(lhs, rhs, n);
+#else
+    float ret = 0.;
+    for(size_t i = 0; i < n; ++i) {
+        float v = lhs[i] - rhs[i];
+        ret += v * v;
+    }
+    return ret;
+#endif
+}
+
+LIBKL_API double nnsqrl2_reduce_aligned_f(const float *const __restrict__ lhs, const float *const __restrict__ rhs, const size_t n) {
+#if __AVX512F__
+    return fnnsqrl2_reduce_aligned_avx512(lhs, rhs, n);
+#elif __AVX2__
+    return fnnsqrl2_reduce_aligned_avx256(lhs, rhs, n);
+#elif __SSE2__
+    return fnnsqrl2_reduce_aligned_sse2(lhs, rhs, n);
+#else
+    float ret = 0.;
+    for(size_t i = 0; i < n; ++i) {
+        float v = lhs[i] - rhs[i];
+        ret += v * v;
+    }
+    return ret;
+#endif
+}
+
+LIBKL_API double nnsqrl2_reduce_unaligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n) {
+#if __AVX512F__
+    return dnnsqrl2_reduce_unaligned_avx512(lhs, rhs, n);
+#elif __AVX2__
+    return dnnsqrl2_reduce_unaligned_avx256(lhs, rhs, n);
+#elif __SSE2__
+    return dnnsqrl2_reduce_unaligned_sse2(lhs, rhs, n);
+#else
+    double ret = 0.;
+    for(size_t i = 0; i < n; ++i) {
+        double v = lhs[i] - rhs[i];
+        ret += v * v;
+    }
+    return ret;
+#endif
+}
+LIBKL_API double nnsqrl2_reduce_aligned_d(const double *const __restrict__ lhs, const double *const __restrict__ rhs, const size_t n) {
+#if __AVX512F__
+    return dnnsqrl2_reduce_aligned_avx512(lhs, rhs, n);
+#elif __AVX2__
+    return dnnsqrl2_reduce_aligned_avx256(lhs, rhs, n);
+#elif __SSE2__
+    return dnnsqrl2_reduce_aligned_sse2(lhs, rhs, n);
+#else
+    double ret = 0.;
+    for(size_t i = 0; i < n; ++i) {
+        double v = lhs[i] - rhs[i];
         ret += v * v;
     }
     return ret;
