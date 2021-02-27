@@ -127,7 +127,7 @@ static inline __attribute__((always_inline)) double _mm_reduce_add_psf(__m128 x)
 #endif
 
 #if !__AVX512DQ__
-#define _mm512_cvtepi64_pd(x) _mm512_sub_pd(_mm512_castsi512_pd(_mm512_or_si512(x, _mm_castpd_si512(_mm512_set1_pd(0x0010000000000000)))), _mm512_set1_pd(0x0010000000000000))
+#define _mm512_cvtepi64_pd(x) _mm512_sub_pd(_mm512_castsi512_pd(_mm512_or_si512(x, _mm512_castpd_si512(_mm512_set1_pd(0x0010000000000000)))), _mm512_set1_pd(0x0010000000000000))
 #endif
 #define LIBKL_ALOG_PD_MUL 1.539095918623324e-16
 #define LIBKL_ALOG_PD_INC -709.0895657128241
@@ -138,12 +138,12 @@ static inline __attribute__((always_inline)) double _mm_reduce_add_psf(__m128 x)
 #if __AVX512F__
 
 static inline  __attribute__((always_inline)) __m512d _mm512_alog_pd(__m512d x) {
-    return _mm512_fmadd_pd(_mm512_cvtepi64_pd(_mm512_castpd_si512(x))
+    return _mm512_fmadd_pd(_mm512_cvtepi64_pd(_mm512_castpd_si512(x)),
                            _mm512_set1_pd(LIBKL_ALOG_PD_MUL),
                            _mm512_set1_pd(LIBKL_ALOG_PD_INC));
 }
 static inline  __attribute__((always_inline)) __m512 _mm512_alog_ps(__m512 x) {
-    return _mm512_fmadd_ps(_mm512_cvtepi32_ps(_mm512_castps_si512(x))
+    return _mm512_fmadd_ps(_mm512_cvtepi32_ps(_mm512_castps_si512(x)),
                            _mm512_set1_ps(LIBKL_ALOG_PS_MUL),
                            _mm512_set1_ps(LIBKL_ALOG_PS_INC));
 }
@@ -280,7 +280,7 @@ LIBKL_API double kl_reduce_aligned_f(const float *const __restrict__ lhs, const 
     assert(((uint64_t)lhs) % 64 == 0);
     const size_t nper = sizeof(__m512) / sizeof(float);
     const size_t nsimd = n / nper;
-    const size_t nsimd4 = (nsimd4 / 4) * 4;
+    const size_t nsimd4 = (nsimd / 4) * 4;
     for(i = 0; i < nsimd4; i += 4) {
         // Perform 4 vector blocks
         __m512 lh0 = _mm512_add_ps(_mm512_load_ps(lhs + (i * nper)), _mm512_set1_ps(lhi));
