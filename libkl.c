@@ -15,19 +15,21 @@
 
 
 #ifdef USE_APPROX_LOG
-    #define Sleef_logd2_u35 _mm_alog_pd
-    #define Sleef_logd4_u35 _mm256_alog_pd
-    #define Sleef_logd8_u35 _mm512_alog_pd
-    #define Sleef_logf4_u35 _mm_alog_ps
-    #define Sleef_logf8_u35 _mm256_alog_ps
-    #define Sleef_logf16_u35 _mm512_alog_ps
+    #define Sleef_logd2_u35 _mm_lkl_alog_pd
+    #define Sleef_logd4_u35 _mm256_lkl_alog_pd
+    #define Sleef_logd8_u35 _mm512_lkl_alog_pd
+    #define Sleef_logf4_u35 _mm_lkl_alog_ps
+    #define Sleef_logf8_u35 _mm256_lkl_alog_ps
+    #define Sleef_logf16_u35 _mm512_lkl_alog_ps
 #endif
 
 
 #if !__AVX512DQ__
-#define _mm512_cvtepi64_pd(x) _mm512_fmadd_pd(\
-        _mm512_cvtepu32_pd(_mm512_cvtepi64_epi32(_mm512_srli_epi64(x, 32))),\
-        _mm512_set1_pd(0x100000000LL), _mm512_cvtepu32_pd(_mm512_cvtepi64_epi32(x)))
+#ifndef _mm512_cvtepi64_pd
+  #define _mm512_cvtepi64_pd(x) _mm512_fmadd_pd(\
+          _mm512_cvtepu32_pd(_mm512_cvtepi64_epi32(_mm512_srli_epi64(x, 32))),\
+          _mm512_set1_pd(0x100000000LL), _mm512_cvtepu32_pd(_mm512_cvtepi64_epi32(x)))
+#endif
 #endif
 
 #ifdef LIBKL_HIGH_PRECISION
@@ -140,12 +142,12 @@ static inline __attribute__((always_inline)) double _mm_reduce_add_psf(__m128 x)
 
 #if __AVX512F__
 
-static inline  __attribute__((always_inline)) __m512d _mm512_alog_pd(__m512d x) {
+static inline  __attribute__((always_inline)) __m512d _mm512_lkl_alog_pd(__m512d x) {
     return _mm512_fmadd_pd(_mm512_cvtepi64_pd(_mm512_castpd_si512(x)),
                            _mm512_set1_pd(LIBKL_ALOG_PD_MUL),
                            _mm512_set1_pd(LIBKL_ALOG_PD_INC));
 }
-static inline  __attribute__((always_inline)) __m512 _mm512_alog_ps(__m512 x) {
+static inline  __attribute__((always_inline)) __m512 _mm512_lkl_alog_ps(__m512 x) {
     return _mm512_fmadd_ps(_mm512_cvtepi32_ps(_mm512_castps_si512(x)),
                            _mm512_set1_ps(LIBKL_ALOG_PS_MUL),
                            _mm512_set1_ps(LIBKL_ALOG_PS_INC));
@@ -153,12 +155,13 @@ static inline  __attribute__((always_inline)) __m512 _mm512_alog_ps(__m512 x) {
 #endif
 
 #if __AVX2__
-static inline __attribute__((always_inline)) __m256 _mm256_abs_ps(__m256 a) {
+static inline __attribute__((always_inline)) __m256 _mm256_kl_abs_ps(__m256 a) {
     return _mm256_max_ps(a, -a);
 }
-static inline __attribute__((always_inline)) __m256d _mm256_abs_pd(__m256d a) {
+static inline __attribute__((always_inline)) __m256d _mm256_kl_abs_pd(__m256d a) {
     return _mm256_max_pd(a, -a);
 }
+#ifndef DEFINED_mm256_cvtepi64_pd_manual
 static inline __attribute__((always_inline)) __m256d _mm256_cvtepi64_pd_manual(const __m256i v)
 // From https://stackoverflow.com/questions/41144668/how-to-efficiently-perform-double-int64-conversions-with-sse-avx/41223013
 {
@@ -174,21 +177,26 @@ static inline __attribute__((always_inline)) __m256d _mm256_cvtepi64_pd_manual(c
     __m256d result       = _mm256_add_pd(v_hi_dbl, _mm256_castsi256_pd(v_lo));
     return result;
 }
+#define DEFINED_mm256_cvtepi64_pd_manual
+#endif
 
+#ifndef _mm256_cvtepi64_pd
 #define _mm256_cvtepi64_pd(x) _mm256_cvtepi64_pd_manual(x)
+#endif
 
-static inline  __attribute__((always_inline)) __m256d _mm256_alog_pd(__m256d x) {
+static inline  __attribute__((always_inline)) __m256d _mm256_lkl_alog_pd(__m256d x) {
     return _mm256_fmadd_pd(_mm256_cvtepi64_pd(_mm256_castpd_si256(x)),
                            _mm256_set1_pd(LIBKL_ALOG_PD_MUL),
                            _mm256_set1_pd(LIBKL_ALOG_PD_INC));
 }
-static inline  __attribute__((always_inline)) __m256 _mm256_alog_ps(__m256 x) {
+static inline  __attribute__((always_inline)) __m256 _mm256_lkl_alog_ps(__m256 x) {
     return _mm256_fmadd_ps(_mm256_cvtepi32_ps(_mm256_castps_si256(x)),
                            _mm256_set1_ps(LIBKL_ALOG_PS_MUL),
                            _mm256_set1_ps(LIBKL_ALOG_PS_INC));
 }
 #endif
 #if __SSE2__
+#ifndef DEFINED_mm_cvtepi64_pd_manual
 static inline __attribute__((always_inline)) __m128d _mm_cvtepi64_pd_manual(__m128i x){
     __m128i xH = _mm_srli_epi64(x, 32);
     xH = _mm_or_si128(xH, _mm_castpd_si128(_mm_set1_pd(19342813113834066795298816.)));          //  2^84
@@ -196,20 +204,24 @@ static inline __attribute__((always_inline)) __m128d _mm_cvtepi64_pd_manual(__m1
     __m128d f = _mm_sub_pd(_mm_castsi128_pd(xH), _mm_set1_pd(19342813118337666422669312.));     //  2^84 + 2^52
     return _mm_add_pd(f, _mm_castsi128_pd(xL));
 }
+#define DEFINED_mm_cvtepi64_pd_manual
+#endif
 
+#ifndef _mm_cvtepi64_pd
 #define _mm_cvtepi64_pd(x) _mm_cvtepi64_pd_manual(x)
-static inline __attribute__((always_inline)) __m128 _mm_abs_ps(__m128 a) {
+#endif
+static inline __attribute__((always_inline)) __m128 _mm_kl_abs_ps(__m128 a) {
     return _mm_max_ps(a, -a);
 }
-static inline __attribute__((always_inline)) __m128d _mm_abs_pd(__m128d a) {
+static inline __attribute__((always_inline)) __m128d _mm_kl_abs_pd(__m128d a) {
     return _mm_max_pd(a, -a);
 }
-static inline  __attribute__((always_inline)) __m128d _mm_alog_pd(__m128d x) {
+static inline  __attribute__((always_inline)) __m128d _mm_lkl_alog_pd(__m128d x) {
     return _mm_fmadd_pd(_mm_cvtepi64_pd(_mm_castpd_si128(x)),
                            _mm_set1_pd(LIBKL_ALOG_PD_MUL),
                            _mm_set1_pd(LIBKL_ALOG_PD_INC));
 }
-static inline  __attribute__((always_inline)) __m128 _mm_alog_ps(__m128 x) {
+static inline  __attribute__((always_inline)) __m128 _mm_lkl_alog_ps(__m128 x) {
     return _mm_fmadd_ps(_mm_cvtepi32_ps(_mm_castps_si128(x)),
                            _mm_set1_ps(LIBKL_ALOG_PS_MUL),
                            _mm_set1_ps(LIBKL_ALOG_PS_INC));
@@ -2011,10 +2023,10 @@ __SQRL2_FUNC_NONORM(double, __m256d, _mm256_loadu_pd, _mm256_add_pd, _mm256_set1
 __SQRL2_FUNC_NONORM(double, __m256d, _mm256_load_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dnnsqrl2_reduce_aligned_avx256, hsum_double_avx, _mm256_mul_pd, _mm256_sub_pd, _mm256_fmadd_pd)
 __SQRL2_FUNC_NONORM(float, __m256, _mm256_loadu_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, fnnsqrl2_reduce_unaligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps, _mm256_sub_ps, _mm256_fmadd_ps)
 __SQRL2_FUNC_NONORM(float, __m256, _mm256_load_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, fnnsqrl2_reduce_aligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps, _mm256_sub_ps, _mm256_fmadd_ps)
-__TVD_FUNC(double, __m256d, _mm256_loadu_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dtvd_reduce_unaligned_avx256, hsum_double_avx, _mm256_mul_pd, _mm256_sub_pd, _mm256_abs_pd, _mm256_fmadd_pd)
-__TVD_FUNC(double, __m256d, _mm256_load_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dtvd_reduce_aligned_avx256, hsum_double_avx, _mm256_mul_pd, _mm256_sub_pd, _mm256_abs_pd, _mm256_fmadd_pd)
-__TVD_FUNC(float, __m256, _mm256_loadu_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, ftvd_reduce_unaligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps, _mm256_sub_ps, _mm256_abs_ps, _mm256_fmadd_ps)
-__TVD_FUNC(float, __m256, _mm256_load_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, ftvd_reduce_aligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps, _mm256_sub_ps, _mm256_abs_ps, _mm256_fmadd_ps)
+__TVD_FUNC(double, __m256d, _mm256_loadu_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dtvd_reduce_unaligned_avx256, hsum_double_avx, _mm256_mul_pd, _mm256_sub_pd, _mm256_kl_abs_pd, _mm256_fmadd_pd)
+__TVD_FUNC(double, __m256d, _mm256_load_pd, _mm256_add_pd, _mm256_set1_pd, Sleef_sqrtd4_u35, _mm256_setzero_pd, dtvd_reduce_aligned_avx256, hsum_double_avx, _mm256_mul_pd, _mm256_sub_pd, _mm256_kl_abs_pd, _mm256_fmadd_pd)
+__TVD_FUNC(float, __m256, _mm256_loadu_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, ftvd_reduce_unaligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps, _mm256_sub_ps, _mm256_kl_abs_ps, _mm256_fmadd_ps)
+__TVD_FUNC(float, __m256, _mm256_load_ps, _mm256_add_ps, _mm256_set1_ps, Sleef_sqrtf8_u35, _mm256_setzero_ps, ftvd_reduce_aligned_avx256, broadcast_reduce_add_si256_psf, _mm256_mul_ps, _mm256_sub_ps, _mm256_kl_abs_ps, _mm256_fmadd_ps)
 #endif
 #ifdef __SSE2__
 __D_BSIM_FUNC(double, __m128d, _mm_loadu_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dbhattd_reduce_unaligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd, _mm_fmadd_pd)
@@ -2033,10 +2045,10 @@ __SQRL2_FUNC_NONORM(double, __m128d, _mm_loadu_pd, _mm_add_pd, _mm_set1_pd, Slee
 __SQRL2_FUNC_NONORM(double, __m128d, _mm_load_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dnnsqrl2_reduce_aligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd, _mm_sub_pd, _mm_fmadd_pd)
 __SQRL2_FUNC_NONORM(float, __m128, _mm_loadu_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, fnnsqrl2_reduce_unaligned_sse2, _mm_reduce_add_psf, _mm_mul_ps, _mm_sub_ps, _mm_fmadd_ps)
 __SQRL2_FUNC_NONORM(float, __m128, _mm_load_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, fnnsqrl2_reduce_aligned_sse2, _mm_reduce_add_psf, _mm_mul_ps, _mm_sub_ps, _mm_fmadd_ps)
-__TVD_FUNC(double, __m128d, _mm_loadu_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dtvd_reduce_unaligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd, _mm_sub_pd, _mm_abs_pd, _mm_fmadd_pd)
-__TVD_FUNC(double, __m128d, _mm_load_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dtvd_reduce_aligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd, _mm_sub_pd, _mm_abs_pd, _mm_fmadd_pd)
-__TVD_FUNC(float, __m128, _mm_loadu_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, ftvd_reduce_unaligned_sse2, _mm_reduce_add_psf, _mm_mul_ps, _mm_sub_ps, _mm_abs_ps, _mm_fmadd_ps)
-__TVD_FUNC(float, __m128, _mm_load_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, ftvd_reduce_aligned_sse2, _mm_reduce_add_psf, _mm_mul_ps, _mm_sub_ps, _mm_abs_ps, _mm_fmadd_ps)
+__TVD_FUNC(double, __m128d, _mm_loadu_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dtvd_reduce_unaligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd, _mm_sub_pd, _mm_kl_abs_pd, _mm_fmadd_pd)
+__TVD_FUNC(double, __m128d, _mm_load_pd, _mm_add_pd, _mm_set1_pd, Sleef_sqrtd2_u35, _mm_setzero_pd, dtvd_reduce_aligned_sse2, _mm_reduce_add_pdd, _mm_mul_pd, _mm_sub_pd, _mm_kl_abs_pd, _mm_fmadd_pd)
+__TVD_FUNC(float, __m128, _mm_loadu_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, ftvd_reduce_unaligned_sse2, _mm_reduce_add_psf, _mm_mul_ps, _mm_sub_ps, _mm_kl_abs_ps, _mm_fmadd_ps)
+__TVD_FUNC(float, __m128, _mm_load_ps, _mm_add_ps, _mm_set1_ps, Sleef_sqrtf4_u35, _mm_setzero_ps, ftvd_reduce_aligned_sse2, _mm_reduce_add_psf, _mm_mul_ps, _mm_sub_ps, _mm_kl_abs_ps, _mm_fmadd_ps)
 #endif
 
 
