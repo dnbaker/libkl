@@ -39,5 +39,5 @@ int main() {
         s += llr_reduce_aligned(v1, v2, nelem, lambda, lhi, rhi);
     }
     auto stop = std::chrono::high_resolution_clock::now();
-    std::fprintf(stderr, "Strategy took %gms for 10 trials\n", std::chrono::duration<double, std::nano>(stop - start).count());
+    std::fprintf(stderr, "Strategy took %gms for 10 trials\n", std::chrono::duration<double, std::milli>(stop - start).count());
 }
