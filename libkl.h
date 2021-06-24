@@ -1,7 +1,6 @@
 #ifndef LIBKL_H__
 #define LIBKL_H__
 #include "x86intrin.h"
-#include "sleef.h"
 #include <math.h>
 #include <unistd.h>
 #include <assert.h>

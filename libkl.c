@@ -1,5 +1,4 @@
 #include "x86intrin.h"
-#include "sleef.h"
 #include <math.h>
 #include <unistd.h>
 #include <assert.h>
@@ -8,26 +7,94 @@
 
 
 
-// LLR has 2 versions:
-// default, and LOG3
-// LOG3 may have better numerical performance, while default will be faster
-
-
-#ifdef USE_APPROX_LOG
-    #define Sleef_logd2_u35 _mm_lkl_alog_pd
-    #define Sleef_logd4_u35 _mm256_lkl_alog_pd
-    #define Sleef_logd8_u35 _mm512_lkl_alog_pd
-    #define Sleef_logf4_u35 _mm_lkl_alog_ps
-    #define Sleef_logf8_u35 _mm256_lkl_alog_ps
-    #define Sleef_logf16_u35 _mm512_lkl_alog_ps
-#endif
-
 
 #if !__AVX512DQ__
 #ifndef _mm512_cvtepi64_pd
   #define _mm512_cvtepi64_pd(x) _mm512_fmadd_pd(\
           _mm512_cvtepu32_pd(_mm512_cvtepi64_epi32(_mm512_srli_epi64(x, 32))),\
           _mm512_set1_pd(0x100000000LL), _mm512_cvtepu32_pd(_mm512_cvtepi64_epi32(x)))
+#endif
+#endif
+
+#ifndef __SLEEF_H__
+#ifdef __AVX512F__
+static inline __m512 Sleef_logf16_u35(__m512 x) {
+    #pragma GCC unroll 16
+    for(size_t i = 0; i < 16; ++i)
+        x[i] = logf(x[i]);
+    return x;
+}
+static inline __m512 Sleef_logf16_u10(__m512 x) {return Sleef_logf16_u35(x);}
+static inline __m512d Sleef_logd8_u35(__m512d x) {
+    #pragma GCC unroll 8
+    for(size_t i = 0; i < 8; ++i) x[i] = log(x[i]);
+    return x;
+}
+static inline __m512d Sleef_logd8_u10(__m512d x) {return Sleef_logd8_u35(x);}
+static inline __m512 Sleef_sqrtf16_u35(__m512 x) {
+    #pragma GCC unroll 16
+    for(size_t i = 0; i < 16; ++i)
+        x[i] = sqrtf(x[i]);
+    return x;
+}
+static inline __m512 Sleef_sqrtf16_u10(__m512 x) {return Sleef_sqrtf16_u35(x);}
+static inline __m512d Sleef_sqrtd8_u35(__m512d x) {
+    #pragma GCC unroll 8
+    for(size_t i = 0; i < 8; ++i) x[i] = sqrt(x[i]);
+    return x;
+}
+static inline __m512d Sleef_sqrtd8_u10(__m512d x) {return Sleef_sqrtd8_u35(x);}
+#endif
+#ifdef __AVX2__
+static inline __m256 Sleef_logf8_u35(__m256 x) {
+    #pragma GCC unroll 8
+    for(size_t i = 0; i < 8; ++i) x[i] = logf(x[i]);
+    return x;
+}
+static inline __m256 Sleef_logf8_u10(__m256 x) {return Sleef_logf8_u35(x);}
+static inline __m256d Sleef_logd4_u35(__m256d x) {
+    x[0] = log(x[0]); x[1] = log(x[1]);
+    x[2] = log(x[2]); x[3] = log(x[3]);
+    return x;
+}
+static inline __m256d Sleef_logd4_u10(__m256d x) {return Sleef_logd4_u35(x);}
+static inline __m256 Sleef_sqrtf8_u35(__m256 x) {
+    #pragma GCC unroll 8
+    for(size_t i = 0; i < 8; ++i)
+        x[i] = sqrtf(x[i]);
+    return x;
+}
+static inline __m256 Sleef_sqrtf8_u10(__m256 x) {return Sleef_sqrtf8_u35(x);}
+static inline __m256d Sleef_sqrtd4_u35(__m256d x) {
+    #pragma GCC unroll 4
+    for(size_t i = 0; i < 4; ++i) x[i] = sqrt(x[i]);
+    return x;
+}
+static inline __m256d Sleef_sqrtd4_u10(__m256d x) {return Sleef_sqrtd4_u35(x);}
+#endif
+#ifdef __SSE2__
+static inline __m128 Sleef_logf4_u35(__m128 x) {
+    x[0] = logf(x[0]); x[1] = logf(x[1]);
+    x[2] = logf(x[2]); x[3] = logf(x[3]);
+    return x;
+}
+static inline __m128 Sleef_logf4_u10(__m128 x) {return Sleef_logf4_u35(x);}
+static inline __m128d Sleef_logd2_u35(__m128d x) {
+    x[0] = log(x[0]); x[1] = log(x[1]);
+    return x;
+}
+static inline __m128d Sleef_logd2_u10(__m128d x) {return Sleef_logd2_u35(x);}
+static inline __m128 Sleef_sqrtf4_u35(__m128 x) {
+    x[0] = sqrtf(x[0]); x[1] = sqrtf(x[1]);
+    x[2] = sqrtf(x[2]); x[3] = sqrtf(x[3]);
+    return x;
+}
+static inline __m128 Sleef_sqrtf4_u10(__m128 x) {return Sleef_sqrtf4_u35(x);}
+static inline __m128d Sleef_sqrtd2_u35(__m128d x) {
+    x[0] = sqrt(x[0]); x[1] = sqrt(x[1]);
+    return x;
+}
+static inline __m128d Sleef_sqrtd2_u10(__m128d x) {return Sleef_sqrtd2_u35(x);}
 #endif
 #endif
 

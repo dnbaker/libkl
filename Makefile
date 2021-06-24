@@ -6,7 +6,7 @@ CXX?=g++
 
 ifdef SLEEF_DIR
 INCLUDE+=-I$(SLEEF_DIR)/include
-LIB+=-L$(SLEEF_DIR)/lib -lsleef
+LIB+=-L$(SLEEF_DIR)/lib #-lsleef
 endif
 WARNINGS+=-Wall -Wextra -Wpointer-arith -Wformat -Wunused-variable -Wno-attributes -Wno-ignored-qualifiers -Wno-unused-function -Wdeprecated -Wno-deprecated-declarations
 
@@ -17,14 +17,14 @@ ND=-DNDEBUG
 all: libkl.so libkl.a libkl.o
 KLCMD=
 ifeq ($(shell uname),Darwin)
-    KLCMD+= && $(CC) -dynamiclib libkl.c  -o $(shell pwd)/libkl.dylib $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA) -std=c11 $(ND)
+    KLCMD+= && $(CC) -dynamiclib libkl.c  -o $(shell pwd)/libkl.dylib $(INCLUDE) $(LIB) $(WARNINGS) $(EXTRA) -std=c11 $(ND)
 endif
 
 libkl.o: libkl.c libkl.h
 	$(CC) $< -o $@ -c $(INCLUDE) $(LIB) $(WARNINGS) $(EXTRA) -std=c11 $(ND) $(BASEFLAGS)
 
 libkl.so: libkl.c
-	$(CC) -shared $<  -o $(shell pwd)/$@ $(INCLUDE) $(LIB) -lsleef $(WARNINGS) $(EXTRA) -std=c11 $(ND) $(KLCMD) $(BASEFLAGS)
+	$(CC) -shared $<  -o $(shell pwd)/$@ $(INCLUDE) $(LIB) $(WARNINGS) $(EXTRA) -std=c11 $(ND) $(KLCMD) $(BASEFLAGS)
 
 libkl.a: libkl.o
 	$(AR) rcs $@ $<
